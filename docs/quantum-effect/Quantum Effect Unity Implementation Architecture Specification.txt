@@ -1,0 +1,667 @@
+# Quantum Effect — Unity Implementation Architecture Specification
+
+## Document ID
+
+QE-400
+
+## Version
+
+1.0 Foundation
+
+## Status
+
+APPROVED
+
+## Engine Version
+
+Unity 6000.5.5f1
+
+## Platform Target
+
+Android
+
+## Language
+
+C#
+
+---
+
+# 1. Purpose
+
+QE-400 defines the engineering architecture for Quantum Effect in Unity.
+
+It translates the gameplay architecture into an implementation framework.
+
+The goal:
+
+Create a maintainable Unity project capable of supporting:
+
+* Open-world RPG systems
+* Simulation systems
+* AI-generated content
+* Mobile optimization
+* Long-term expansion
+
+---
+
+# 2. Unity Architecture Decision
+
+## ADR-0016 — Unity Architecture Model
+
+Decision:
+
+# Hybrid Unity Architecture
+
+Combining:
+
+* MonoBehaviour Components
+* ScriptableObjects
+* Service Architecture
+* Event-Driven Communication
+* Data-Oriented Principles
+
+---
+
+# 3. Core Architecture Pattern
+
+Quantum Effect follows:
+
+```text
+Presentation Layer
+
+↓
+
+Component Layer
+
+↓
+
+Service Layer
+
+↓
+
+Simulation Layer
+
+↓
+
+Data Layer
+```
+
+---
+
+# 4. Layer Responsibilities
+
+---
+
+# 4.1 Presentation Layer
+
+Purpose:
+
+Controls visual representation.
+
+Examples:
+
+* Animation
+* Effects
+* UI
+* Camera
+* Audio
+
+Contains:
+
+```text
+PlayerView
+
+CharacterAnimator
+
+WorldVisualController
+```
+
+---
+
+# 4.2 Component Layer
+
+Purpose:
+
+Unity GameObject behaviours.
+
+Responsibilities:
+
+* Receive input
+* Connect objects
+* Display state
+
+Examples:
+
+```text
+PlayerController
+
+InteractableComponent
+
+CharacterPresenter
+```
+
+---
+
+# 4.3 Service Layer
+
+Purpose:
+
+Game logic.
+
+Services are pure C# systems where possible.
+
+Examples:
+
+```text
+InventoryService
+
+CombatService
+
+QuestService
+
+DialogueService
+
+SaveService
+```
+
+---
+
+# 4.4 Simulation Layer
+
+Purpose:
+
+World-scale logic.
+
+Examples:
+
+```text
+FactionSimulationService
+
+EconomySimulationService
+
+WorldSimulationService
+```
+
+---
+
+# 4.5 Data Layer
+
+Purpose:
+
+Definitions and persistence.
+
+Examples:
+
+```text
+ScriptableObjects
+
+Save Files
+
+Configuration Data
+```
+
+---
+
+# 5. Unity Project Structure
+
+```text
+Assets/
+
+QuantumEffect/
+
+├── Core/
+
+│   ├── Bootstrap/
+│   ├── Events/
+│   ├── Services/
+│   ├── Interfaces/
+│   └── Utilities/
+
+│
+
+├── Gameplay/
+
+│   ├── Characters/
+│   ├── Combat/
+│   ├── Inventory/
+│   ├── Interaction/
+│   ├── Dialogue/
+│   └── Quests/
+
+│
+
+├── Simulation/
+
+│   ├── AI/
+│   ├── Economy/
+│   ├── Factions/
+│   └── World/
+
+│
+
+├── Data/
+
+│   ├── Definitions/
+│   ├── Configurations/
+│   └── Saves/
+
+│
+
+├── Presentation/
+
+│   ├── UI/
+│   ├── Camera/
+│   ├── Animation/
+│   └── Audio/
+
+│
+
+├── Art/
+
+│   ├── Characters/
+│   ├── Environment/
+│   ├── Items/
+│   └── Effects/
+
+│
+
+└── Tools/
+```
+
+---
+
+# 6. Namespace Rules
+
+All scripts use namespaces.
+
+Base:
+
+```csharp
+QuantumEffect
+```
+
+---
+
+Examples:
+
+Gameplay:
+
+```csharp
+QuantumEffect.Gameplay.Characters
+```
+
+Combat:
+
+```csharp
+QuantumEffect.Gameplay.Combat
+```
+
+AI:
+
+```csharp
+QuantumEffect.Simulation.AI
+```
+
+Core:
+
+```csharp
+QuantumEffect.Core
+```
+
+---
+
+# 7. Script Responsibility Rules
+
+Every script has one primary responsibility.
+
+---
+
+Rejected:
+
+```text
+PlayerManager.cs
+
+Contains:
+
+Movement
+
+Combat
+
+Inventory
+
+Dialogue
+
+Saving
+```
+
+---
+
+Approved:
+
+```text
+PlayerMovementController.cs
+
+PlayerCombatController.cs
+
+PlayerInventoryComponent.cs
+
+PlayerDialogueComponent.cs
+```
+
+---
+
+# 8. MonoBehaviour Rules
+
+MonoBehaviour scripts should:
+
+* Connect Unity objects.
+* Receive Unity events.
+* Forward requests.
+
+They should NOT contain:
+
+* Large calculations.
+* Economy logic.
+* Simulation rules.
+
+---
+
+Example:
+
+Correct:
+
+```text
+PlayerController
+
+↓
+
+Input Received
+
+↓
+
+MovementService
+```
+
+---
+
+# 9. Service Rules
+
+Services:
+
+* Contain gameplay logic.
+* Are reusable.
+* Communicate through events.
+
+Example:
+
+```text
+CombatService
+
+receives:
+
+AttackRequest
+
+produces:
+
+DamageEvent
+```
+
+---
+
+# 10. ScriptableObject Rules
+
+ScriptableObjects contain:
+
+* Definitions
+* Configurations
+* Static data
+
+Examples:
+
+```text
+WeaponDefinition
+
+CharacterDefinition
+
+QuestDefinition
+
+FactionDefinition
+```
+
+---
+
+They should NOT contain:
+
+* Runtime state
+* Player progress
+* Current inventory
+
+---
+
+# 11. Event Architecture
+
+Systems communicate through events.
+
+Example:
+
+```text
+Player Interacts
+
+↓
+
+InteractionEvent
+
+↓
+
+Quest System
+
+↓
+
+Relationship Update
+
+↓
+
+Narrative Event
+```
+
+---
+
+Example events:
+
+```text
+EntityCreatedEvent
+
+DamageAppliedEvent
+
+QuestCompletedEvent
+
+FactionChangedEvent
+```
+
+---
+
+# 12. Dependency Rules
+
+Systems should avoid direct references.
+
+Bad:
+
+```text
+InventoryService
+
+calls
+
+QuestManager directly
+```
+
+---
+
+Good:
+
+```text
+InventoryService
+
+emits:
+
+ItemAcquiredEvent
+
+↓
+
+Quest System listens
+```
+
+---
+
+# 13. Assembly Definition Strategy
+
+Future structure:
+
+```text
+QuantumEffect.Core.asmdef
+
+QuantumEffect.Gameplay.asmdef
+
+QuantumEffect.Simulation.asmdef
+
+QuantumEffect.Presentation.asmdef
+```
+
+Purpose:
+
+* Faster compilation.
+* Clear dependencies.
+* Easier debugging.
+
+---
+
+# 14. AI Coding Agent Rules
+
+Every coding request must include:
+
+```text
+Project:
+Quantum Effect
+
+Engine:
+Unity 6000.5.5f1
+
+Language:
+C#
+
+Architecture:
+Hybrid Unity Architecture
+
+Rules:
+
+1. Generate one C# file per response.
+2. Never combine unrelated classes.
+3. Preserve namespaces.
+4. Preserve existing architecture.
+5. Use interfaces where appropriate.
+6. Use XML documentation.
+7. Add meaningful comments.
+8. Avoid unnecessary dependencies.
+9. Provide complete file output.
+10. Do not redesign architecture.
+```
+
+---
+
+# 15. Code Review Checklist
+
+Every generated script must pass:
+
+## Architecture
+
+□ Correct layer
+□ Correct namespace
+□ Single responsibility
+
+---
+
+## Unity
+
+□ Correct MonoBehaviour usage
+□ No unnecessary Update loops
+□ Mobile performance considered
+
+---
+
+## Integration
+
+□ Uses existing services
+□ Uses events when appropriate
+□ Does not create duplicate systems
+
+---
+
+# 16. Development Workflow
+
+Approved pipeline:
+
+```text
+Architecture Document
+
+↓
+
+System Specification
+
+↓
+
+Prompt Generation
+
+↓
+
+Individual C# Scripts
+
+↓
+
+Unity Integration
+
+↓
+
+Testing
+
+↓
+
+Architecture Update
+```
+
+---
+
+# 17. Future Expansion
+
+Supports:
+
+* Multiplayer possibility
+* Modding
+* Procedural content
+* AI-generated assets
+* Large simulation systems
+
+---
+
+# Architecture Decision Record
+
+## ADR-0016 — Unity Implementation Architecture
+
+Decision:
+
+Hybrid Unity Architecture.
+
+Reason:
+
+Provides:
+
+* Scalability
+* Maintainability
+* AI coding compatibility
+* Android feasibility
+
+Status:
+
+APPROVED.
+
+---
+
+# End of QE-400 Unity Implementation Architecture Specification

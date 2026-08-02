@@ -1,0 +1,361 @@
+Quantum Effect Software Development Pipeline Bible
+
+Version: 1.0 (Foundation)
+Status: Approved
+Engine: Unity 6000.5.5f1
+
+1. Vision
+
+Quantum Effect is not developed as a traditional Unity project.
+
+It is developed as an AI-native software project.
+
+Unity is the runtime.
+
+The AI pipeline is the production environment.
+
+The project is designed for long-term maintainability through modular, independently generated systems.
+
+2. Core Philosophy
+
+The software architecture follows five principles:
+
+Principle 1
+
+Simulation First
+
+Gameplay emerges from interacting systems.
+
+Never hard-code gameplay sequences when systems can naturally produce them.
+
+Principle 2
+
+Modularity
+
+Every feature exists as an independent module.
+
+Modules communicate through interfaces and events.
+
+Principle 3
+
+Data Driven
+
+Content belongs in ScriptableObjects and data assets.
+
+Logic belongs in C#.
+
+Principle 4
+
+Single Responsibility
+
+Each class has one responsibility.
+
+Each script has one responsibility.
+
+One .cs file equals one class unless there is a compelling reason otherwise.
+
+Principle 5
+
+AI Native
+
+Everything should be understandable by another AI session.
+
+Every generated component should be self-documenting and conform to shared standards.
+
+3. Technology Stack
+Unity 6000.5.5f1
+Android Build Support
+C#
+Individual .cs files
+ScriptableObjects for content
+Prefabs for reusable scene objects
+Unity scenes for presentation
+ComfyUI for asset generation
+Flux-2-klein-4b and SDXL 1.0 Base + Refiner for visual assets
+4. High-Level Architecture
+Quantum Effect
+
+Presentation Layer
+    UI
+    Camera
+    Animation
+    Audio
+    Visual Effects
+
+Application Layer
+    Controllers
+    Coordinators
+    Gameplay Flow
+
+Simulation Layer
+    Character
+    Inventory
+    Combat
+    Skills
+    AI
+    Factions
+    Economy
+    Weather
+    Time
+    Reputation
+    Crafting
+    Dialogue
+    Quest
+    Space
+    Colonies
+
+Infrastructure Layer
+    Save
+    Input
+    Event Bus
+    Scene Loading
+    Settings
+    Localization
+    Asset Management
+5. Three-Project Mental Model
+
+Although implemented within one Unity project, development is conceptually divided into three parts:
+
+Quantum Core
+
+Pure game simulation.
+
+Minimal Unity dependencies.
+
+Contains rules and systems.
+
+Quantum Unity
+
+Unity integration.
+
+MonoBehaviours.
+
+Scenes.
+
+Rendering.
+
+Input.
+
+Animation.
+
+Audio.
+
+Quantum Content
+
+ScriptableObjects.
+
+Prefabs.
+
+Dialogue.
+
+NPC definitions.
+
+Items.
+
+Quests.
+
+Visual assets.
+
+Maps.
+
+6. Coding Standards
+
+Every generated script must:
+
+Compile independently.
+Follow the Single Responsibility Principle.
+Include XML documentation for all public classes and methods.
+Contain clear comments explaining non-obvious logic.
+Avoid hard-coded content values where data assets are appropriate.
+Prefer interfaces over direct concrete dependencies.
+Minimize coupling between systems.
+7. AI Development Rules
+
+The AI should never:
+
+Rewrite unrelated systems.
+Merge unrelated classes into one file.
+Change folder structures without explicit approval.
+Break public APIs without documenting the impact.
+Introduce hidden dependencies.
+
+The AI should always:
+
+Explain assumptions.
+List generated files.
+Describe dependencies.
+Identify extension points.
+Highlight future integration requirements.
+8. Event-Driven Communication
+
+Prefer:
+
+Character gains item
+        ↓
+Inventory Service
+        ↓
+Event Bus
+        ↓
+Quest System
+Achievements
+Tutorial
+Audio
+Analytics
+
+Avoid direct cross-system calls whenever an event-based approach is appropriate.
+
+9. Development Workflow
+
+Every feature follows the same lifecycle:
+
+Design
+    ↓
+Architecture Review
+    ↓
+Prompt Generation
+    ↓
+Prompt Review
+    ↓
+Code Generation
+    ↓
+Code Review
+    ↓
+Unity Import
+    ↓
+Compilation
+    ↓
+Testing
+    ↓
+Documentation
+    ↓
+Approved
+
+No feature skips review stages.
+
+10. Prompt Generation Philosophy
+
+The coding AI is never prompted directly from a vague feature request.
+
+Instead, a dedicated prompt-generation step produces a precise implementation prompt that specifies:
+
+Objective
+Scope
+Responsibilities
+Dependencies
+File outputs
+Acceptance criteria
+Coding standards
+Integration notes
+
+This ensures consistency across all generated code.
+
+Branching Workflow
+
+Rather than one enormous master prompt, I recommend maintaining a library of specialized prompt-generation workflows.
+
+QE-PG-001 — Foundation & Architecture
+
+Generates prompts for:
+
+Project structure
+Folder organization
+Namespaces
+Assembly Definitions
+Dependency rules
+Service architecture
+QE-PG-002 — Core Simulation
+
+Generates prompts for:
+
+Character
+Inventory
+Combat
+Skills
+Equipment
+Crafting
+Economy
+Needs
+Reputation
+Time
+Weather
+QE-PG-003 — World Systems
+
+Generates prompts for:
+
+Maps
+Regions
+Biomes
+Cities
+Colonies
+Star systems
+Parallel Earths
+Travel
+Procedural generation
+QE-PG-004 — NPC & AI
+
+Generates prompts for:
+
+NPC behaviors
+State machines
+Schedules
+Relationships
+Companion systems
+Pets
+Enemies
+Faction AI
+QE-PG-005 — User Interface
+
+Generates prompts for:
+
+HUD
+Menus
+Inventory UI
+Character sheets
+Dialogue
+Notifications
+Mobile touch controls
+QE-PG-006 — Content Pipeline
+
+Generates prompts for:
+
+ScriptableObjects
+Item databases
+Quest definitions
+Dialogue assets
+Prefab conventions
+Asset import rules
+QE-PG-007 — Infrastructure
+
+Generates prompts for:
+
+Save/load
+Input
+Scene management
+Event bus
+Logging
+Localization
+Settings
+Configuration
+QE-PG-008 — Testing & QA
+
+Generates prompts for:
+
+Test plans
+Validation checklists
+Regression testing
+Performance reviews
+Code reviews
+Refactoring guidance
+Recommended Session Workflow
+
+To keep future conversations focused and maintainable, I suggest treating each branch as its own long-running workspace:
+
+Session	Purpose	Output
+QE-PG-001	Foundation & architecture	Project standards and structural prompts
+QE-PG-002	Simulation systems	Gameplay-system implementation prompts
+QE-PG-003	World systems	World-generation and map prompts
+QE-PG-004	NPC & AI	Behavior and companion prompts
+QE-PG-005	UI & UX	Interface implementation prompts
+QE-PG-006	Content pipeline	Data, assets, and authoring prompts
+QE-PG-007	Infrastructure	Engine services and platform prompts
+QE-PG-008	QA & maintenance	Testing, debugging, and optimization prompts
