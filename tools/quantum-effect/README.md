@@ -96,3 +96,124 @@ writing more `quantum_effect` data:
   `data["base.config_option"]:edit(name, func)` (pattern copied from
   `mod/base/init.lua`'s `data["base.effect"]:edit(...)`) - that runs before
   the clear/load cycle, so the freshly-computed default picks it up.
+
+## Phase 0.5: extraction tooling (2026-08-03)
+
+Three scripts turn the raw design-system art into `pack_sprites.ps1`-ready
+per-subject files. Each is a standalone pre-processing step - none of them
+replace `pack_sprites.ps1`, they just clean its input.
+
+### `dekey_alpha.ps1` - restore real alpha to opaque art
+
+Some source images (`icons/coin-gold.png`, `bestiary/creatures/arctic.png`)
+carry a baked-in background instead of transparency - every pixel has
+alpha=255. This flood-fills the background out from the image border. Unlike
+a flat colour-distance test against one sampled background colour, each step
+compares a candidate pixel only to the neighbour that reached it, so the
+fill follows QE's vignette/gradient backgrounds instead of stopping the
+instant the gradient drifts past a fixed tolerance.
+
+Known limit: a handful of icons (`potion-stamina.png`) have almost no
+contrast between subject and background to begin with - no keying strategy
+recovers those; the tool prints a warning when it clears >90% of an image
+(a sign it likely ate the subject) so they're easy to spot and triage by
+hand rather than shipped silently broken.
+
+### `slice_contact_sheet.ps1` - split multi-subject sheets
+
+Splits a sheet (e.g. `arctic.png`, 7 creatures side by side) into one file
+per subject by finding columns that are fully transparent - i.e. it needs
+real alpha, so run `dekey_alpha.ps1` first if the source is still opaque.
+Segments narrower than `-MinWidth` are dropped as edge antialiasing noise,
+not real subjects.
+
+This is column-only: it does not remove the caption/badge bands still baked
+into each sliced tile. That's `strip_bands.ps1`'s job.
+
+### `strip_bands.ps1` - drop caption/badge bands from sliced tiles
+
+For contact-sheet tiles (bestiary-style: one connected creature silhouette
+per tile, with a text caption above and a level-badge icon below), this
+finds row-runs of content separated by real transparent gaps. Only the
+TOPMOST and BOTTOMMOST runs are ever candidates for removal, each dropped
+if it's under `-MinHeightRatio` of the tallest of the *other* runs; any run
+in between is always kept regardless of size.
+
+That edge-only restriction isn't incidental - an earlier version judged
+every run purely by "is it tall enough vs. the tallest run" and left the
+badge behind on several sprawling creatures (spread wings, many legs),
+because their own anatomy fragments into several runs and a mid-body leg
+run can land in the same height range as the badge. A label/badge is
+structurally always outermost, so restricting candidacy to first/last and
+always keeping the middle fixes it without needing to guess a threshold
+that works for every silhouette shape.
+
+Validated against the full `bestiary/creatures/` set (12 sheets, 84
+creatures) through the whole `dekey_alpha -> slice_contact_sheet ->
+strip_bands -> pack_sprites` pipeline with no per-file tuning: 83/84 tiles
+came out clean (spiders and scorpions with fully-spread legs included -
+verified those legs survive, since they're always "middle" runs). One
+outlier, `forest_07`, still has its badge baked in because the creature's
+own art touches the badge with no transparent gap between them at all -
+there's no row-gap for any gap-based tool to find; it needs a manual crop
+or a different (non-gap) signal.
+
+**Scope warning, confirmed the hard way: this is only safe for
+single-connected-silhouette tiles, not general character-sprite frames.**
+A dynamic pose (a jump, an attack) can legitimately have parts - a raised
+head, a trailing foot - separated from the rest of the silhouette by a real
+transparent gap, and even the edge-only version can't tell a disconnected
+head from a caption by geometry alone if the head happens to be first/last.
+Tested against `characters/sprites/player`: an earlier version of this tool
+silently deleted a head from a frame that had no caption at all. Use
+`strip_caption.ps1` for character-sprite frames instead.
+
+### `strip_caption.ps1` - remove baked-in captions from character-sprite frames
+
+Purpose-built for the `characters/sprites/` caption problem (`RUN (8
+FRAMES)` etc., see below), after `strip_bands.ps1` proved unsafe there.
+Requires **both** signals to agree before dropping anything:
+
+1. **Geometric**: the topmost run of content rows, separated from
+   everything below by a real transparent gap.
+2. **Colour**: that run must be majority caption-coloured - a saturated
+   cyan (G and B channels well above R) - measured off the actual "RUN (8
+   FRAMES)" pixels, not assumed.
+3. **Size cap**: that run must be a small fraction of the frame's total
+   height, so an effect that fills nearly the whole canvas and simply runs
+   out of pixels near the bottom edge (an ordinary trim margin, not a
+   caption boundary) doesn't qualify no matter how cyan it is.
+
+All three were necessary - each single-signal version was tried and each
+had a confirmed false positive: geometry-only deleted a disconnected head;
+colour-only shaved the tip off a legitimately blue dash-effect frame that
+tapers into the character with no gap; geometry+colour without the size cap
+wiped out most of an attack-effect sprite because the "gap" it found was
+just bottom margin. Validated clean across all four actors (`player`,
+`kira`, `trooper`, `colossus`) - flags 2-7 frames per actor, matching the
+"first frame of an animation row, occasionally" pattern the sprites
+`README.md` describes, including the specifically-documented `colossus`
+row-1 case.
+
+### Suggested pipeline for a new contact-sheet category (e.g. bestiary)
+
+```powershell
+.\dekey_alpha.ps1 -InputDir <raw category dir> -OutDir out\<category>_keyed
+foreach ($sheet in Get-ChildItem out\<category>_keyed -Filter *.png) {
+    .\slice_contact_sheet.ps1 -InputFile $sheet.FullName -OutDir out\<category>_sliced
+}
+.\strip_bands.ps1 -InputDir out\<category>_sliced -OutDir out\<category>_clean
+.\pack_sprites.ps1 -InputDir out\<category>_clean -OutSheet out\<category>_48.png
+```
+
+For `characters/sprites/`, skip slicing (already one subject per file) and
+use `strip_caption.ps1` instead of `strip_bands.ps1`:
+
+```powershell
+.\strip_caption.ps1 -InputDir <sprites dir>\player -OutDir out\player_clean
+.\pack_sprites.ps1 -InputDir out\player_clean -OutSheet out\player_48.png
+```
+
+Not yet built: a slicer/cropper for "key art, not sprites" files (e.g.
+`bestiary/bosses/bio-leviathan.png`, a painterly illustration with a
+caption and letterbox bars) - different shape of problem, deferred.
