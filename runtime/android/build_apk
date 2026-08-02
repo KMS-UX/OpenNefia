@@ -1,0 +1,42 @@
+#!/bin/bash
+# Packages src/ into a game.love file and builds a debug LOVE-for-Android
+# APK with it embedded, using a local checkout of love2d/love-android.
+# See runtime/android/README.md for one-time setup.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LOVE_ANDROID_DIR="${LOVE_ANDROID_DIR:-$REPO_DIR/../love-android}"
+
+if [ ! -f "$LOVE_ANDROID_DIR/gradlew" ]; then
+    echo "love-android checkout not found at $LOVE_ANDROID_DIR."
+    echo "Set LOVE_ANDROID_DIR, or see runtime/android/README.md for setup."
+    exit 1
+fi
+
+# love-android's pinned Gradle wrapper cannot run under JDK versions newer
+# than 17 (e.g. the JBR bundled with current Android Studio releases is
+# JDK 21+, which fails with "Unsupported class file major version").
+# Set JAVA_HOME_17 to a JDK 17 install if the default JAVA_HOME won't work.
+if [ -n "$JAVA_HOME_17" ]; then
+    export JAVA_HOME="$JAVA_HOME_17"
+fi
+
+echo "Packaging src/ into game.love..."
+GAME_LOVE="$(mktemp -u).love"
+pushd "$REPO_DIR/src" >/dev/null
+zip -rq -5 "$GAME_LOVE" .
+popd >/dev/null
+
+cp "$GAME_LOVE" "$LOVE_ANDROID_DIR/app/src/embed/assets/game.love"
+rm -f "$GAME_LOVE"
+
+pushd "$LOVE_ANDROID_DIR" >/dev/null
+./gradlew assembleEmbedNoRecordDebug
+popd >/dev/null
+
+echo
+echo "Done. APK output:"
+echo "  $LOVE_ANDROID_DIR/app/build/outputs/apk/embedNoRecord/debug/"
+echo "Install with: adb install -r \"$LOVE_ANDROID_DIR/app/build/outputs/apk/embedNoRecord/debug/app-embed-noRecord-debug.apk\""

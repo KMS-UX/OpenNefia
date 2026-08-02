@@ -28,6 +28,9 @@ end
 -- filesystem abstraction layer so the files can be found.
 if love.system.getOS() == "Android" then
    local absolute_dir = love.filesystem.getSource()
+   if not absolute_dir:match('/$') then
+      absolute_dir = absolute_dir .. "/"
+   end
    package.path = package.path:gsub('%./', absolute_dir)
 end
 
