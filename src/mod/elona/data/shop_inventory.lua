@@ -129,7 +129,8 @@ data:add_type(
          },
          {
             name = "restock_interval",
-            type = types.positive(types.number)
+            type = types.optional(types.positive(types.number)),
+            default = 24
          },
          {
             name = "is_temporary",

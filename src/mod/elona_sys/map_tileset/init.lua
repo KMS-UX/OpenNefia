@@ -8,11 +8,11 @@ data:add_type {
       },
       {
          name = "tiles",
-         type = types.map(types.data_id("base.map_tile"), types.some(types.data_id("base.map_tile"), types.callback({}, types.data_id("base.map_tile"))))
+         type = types.optional(types.map(types.data_id("base.map_tile"), types.some(types.data_id("base.map_tile"), types.callback({}, types.data_id("base.map_tile")))))
       },
       {
          name = "fog",
-         type = types.some(types.data_id("base.map_tile"), types.callback({"x", types.uint, "y", types.uint, "tile", types.table}, types.data_id("base.map_tile")))
+         type = types.optional(types.some(types.data_id("base.map_tile"), types.callback({"x", types.uint, "y", types.uint, "tile", types.table}, types.data_id("base.map_tile"))))
       },
       {
          name = "door",

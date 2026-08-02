@@ -6,7 +6,7 @@ data:add_type {
    fields = {
       {
          name = "icon",
-         type = types.data_id("base.asset"),
+         type = types.optional(types.data_id("base.asset")),
          template = true
       },
       {

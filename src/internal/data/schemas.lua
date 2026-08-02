@@ -178,7 +178,7 @@ Remove this to use the character's sprite instead.
          },
          {
             name = "resistances",
-            type = types.map(types.data_id("base.resistance"), types.int),
+            type = types.optional(types.map(types.data_id("base.resistance"), types.int)),
             default = {},
             no_fallback = true
          },
@@ -217,7 +217,8 @@ This determines if it will act hostile toward the player on first sight.
          {
             -- TODO should be data ID in key positions
             name = "initial_equipment",
-            type = ty_equip_spec
+            type = types.optional(ty_equip_spec),
+            default = {}
          },
          {
             name = "race",
@@ -264,7 +265,7 @@ The character's female image. Can be nil to use the race's default image.
          },
          {
             name = "gender",
-            type = types.literal("female", "male"), -- TODO allow arbitrary genders
+            type = types.optional(types.literal("female", "male")), -- TODO allow arbitrary genders
             default = "female",
             no_fallback = true,
             doc = [[
@@ -440,7 +441,7 @@ A callback to be run when this character's corpse is eaten.
          {
             name = "events",
             default = nil,
-            type = types.list(ty_event),
+            type = types.optional(types.list(ty_event)),
             doc = [[
 List of events to bind to this character when they are spawned.
 ]]
@@ -979,7 +980,7 @@ What gods this item can be offered to.
          },
          {
             name = "material",
-            type = types.data_id("base.material"),
+            type = types.optional(types.data_id("base.material")),
             template = true,
             doc = [[
 Material of this item.
@@ -1330,11 +1331,11 @@ data:add_type(
          },
          {
             name = "age_min",
-            type = types.number,
+            type = types.optional(types.number),
          },
          {
             name = "age_max",
-            type = types.number,
+            type = types.optional(types.number),
          },
          {
             name = "skills",
@@ -2436,7 +2437,7 @@ It can either be a string referencing an image file, or a table with these conte
       },
       {
          name = "group",
-         type = types.string,
+         type = types.optional(types.string),
       },
       {
          name = "shadow",
@@ -2872,14 +2873,14 @@ It must implement IConfigItemWidget.
       },
       {
          name = "fields",
-         type = types.map(types.string, types.type),
+         type = types.optional(types.map(types.string, types.type)),
          doc = [[
 Extra fields for configuring this config option type.
 ]]
       },
       {
          name = "default",
-         type = types.some(types.serializable, types.callback({"option", types.data_entry("base.config_option")}, types.serializable)),
+         type = types.optional(types.some(types.serializable, types.callback({"option", types.data_entry("base.config_option")}, types.serializable))),
          doc = [[
 Default value of this config option type.
 ]]

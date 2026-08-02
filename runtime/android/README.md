@@ -1,12 +1,23 @@
 # Android build path (prototype)
 
-**Status: build pipeline proven, boot still broken.** A debug-signed,
-installable APK builds successfully from this repo's `src/` and installs
-fine (`aapt2 dump badging` + `apksigner verify` both pass — package
-`com.quantumeffect.prototype`, label "Quantum Effect"). Running it on an
-emulator crashes during Lua module loading — see
-[Known gaps](#known-gaps-not-addressed-by-this-prototype), first item, for
-what's actually going on and what's still needed.
+**Status: boots. The Lua module-loading crash that previously blocked
+everything is fixed and confirmed on a real emulator** (API 34, x86_64) —
+the game now gets past `require`, mod loading, and into actual game-data
+initialization, further than this prototype has ever reached before. A
+follow-up data-validation error it then hit (unrelated to Android — see
+first Known-gaps item for the full story) has also been fixed; a clean
+install now passes strict validation with all ~50 mods loaded and the full
+desktop test suite still green. Not yet re-confirmed on-device since the
+validation fix, but nothing in it is Android-specific.
+
+A debug-signed, installable APK builds successfully from this repo's
+`src/` (`aapt2 dump badging` + `apksigner verify` both pass — package
+`com.quantumeffect.prototype`, label "Quantum Effect"). Real Elona 1.22
+assets are in place under `src/deps/elona` and flow into
+`src/graphic/`/`src/mod/elona/sound/` automatically. `runtime/android/build_apk.bat`
+had its own bug (`call gradlew.bat` doesn't resolve the cwd on systems
+where `NoDefaultCurrentDirectoryInExePath` is set — fixed to
+`call .\gradlew.bat`).
 
 This is a first working path to an installable Android build of OpenNefia,
 using LÖVE's official Android port ([love2d/love-android](https://github.com/love2d/love-android))
@@ -93,50 +104,137 @@ anywhere beyond your own devices.
 
 ## Known gaps (not addressed by this prototype)
 
-- **Lua module loading crashes on boot (unresolved).** Tested on an emulator
-  (API 34, x86_64): the app installs and launches but immediately crashes
-  with `boot.lua:48: module 'ext' not found`.
+- **Lua module loading crash on boot — fixed and confirmed on-device.**
+  This was actually three separate, stacked bugs, all in `src/boot.lua`,
+  found by rebuilding and re-testing on an emulator (API 34, x86_64) after
+  each fix:
 
-  `src/boot.lua` has an Android-specific workaround (the `if
-  love.system.getOS() == "Android"` block) that rewrites `package.path`
-  entries like `./?.lua` into OS-absolute paths using
-  `love.filesystem.getSource()`, on the theory that LÖVE's require
-  machinery needs real filesystem paths on Android. One bug in that
-  rewrite was fixed here — the original code concatenated
-  `getSource()` directly against `?.lua` with no path separator, producing
-  paths like `.../game.loveext.lua`. That's fixed (see the `boot.lua` diff
-  in this change), and path formation is now correct:
-  `.../cache/game.love/ext/init.lua`.
+  1. **Wrong absolute path fed to the wrong loader.** The original code
+     had an Android-only block that rewrote `package.path` entries like
+     `./?.lua` into OS-absolute paths via `love.filesystem.getSource()`,
+     on the theory that LÖVE's require machinery needs real filesystem
+     paths on Android. Reading love-android 11.5a's own source
+     (`love/src/jni/love/src/modules/filesystem/wrap_Filesystem.cpp`,
+     `loader()`) shows this premise is backwards: LÖVE's own `require`
+     support is a PhysFS-based loader that takes patterns from
+     `love.filesystem.getRequirePath()` and resolves them **relative to
+     the mounted virtual filesystem root** — the same root whether that's
+     an extracted folder (desktop) or a packed `.love` archive (Android).
+     It never touches the real OS filesystem or `getSource()`'s path to
+     the archive file itself. Feeding it OS-absolute strings like
+     `.../cache/game.love/ext/init.lua` makes it look for that entire
+     string as a *virtual* path, which doesn't exist (the archive's
+     virtual root just has `ext/init.lua` at the top). Desktop never hit
+     this because it never entered the Android branch. **Fix:** deleted
+     the whole rewrite block; Android now passes the plain relative
+     `package.path` through to `setRequirePath`, like every other
+     platform.
+  2. **PhysFS doesn't treat a leading `./` as a no-op.** With bug 1 fixed,
+     `require("ext")` *still* failed. Debug logging
+     (`love.filesystem.getInfo("ext/init.lua")` → found;
+     `getInfo("./ext/init.lua")` → `nil`) showed that PhysFS-backed
+     `getInfo` — unlike a real OS filesystem — does not normalize a
+     leading `./`. Every entry this project adds to `package.path` is
+     `./`-prefixed, which is harmless for the OS-based vanilla Lua loader
+     but silently broke every pattern handed to LÖVE's own loader.
+     **Fix:** strip a leading `./` per `;`-separated entry before calling
+     `setRequirePath`.
+  3. **The deeper one: this codebase's own module system never used
+     LÖVE's loader at all.** With 1 and 2 fixed, boot got past
+     `require("ext")` and the other early requires — but crashed again on
+     `require("api.Draw")` from `main.lua`, this time via
+     `internal/env.lua`'s hooked `require` (installed at the end of
+     `boot.lua`, and used for almost every `require()` call in the game
+     from that point on, including all of mod loading). That hook's
+     `env_dofile`/`get_require_path` resolve modules with
+     `package.searchpath` + vanilla `loadfile` — real OS file I/O, same
+     as `game/startup.lua`'s asset copy (see next item) — which can never
+     read into a packed archive on *any* platform, PhysFS quirks aside.
+     **Fix:** rather than rewrite this codebase's whole module-loading
+     path to be PhysFS-aware, `boot.lua` now extracts the entire mounted
+     source tree to `love.filesystem.getSaveDirectory()` (a real,
+     writable OS folder on every platform — already relied on elsewhere,
+     see `util/fs.lua`) on first launch, gated by a marker file so it only
+     happens once, and points `package.path` at that real directory
+     instead of relative `./` patterns. Everything downstream — the
+     hooked require, mod loading, the asset copy — then works exactly as
+     it does on desktop, because it's reading real files instead of a
+     mounted archive.
 
-  But it still fails, because that whole premise doesn't hold on current
-  love-android (11.5a): the game isn't extracted to a real folder on disk —
-  logcat shows `GameActivity: Successfully copied stream to
-  .../cache/game.love (N bytes written)`, i.e. `game.love` is mounted as a
-  packed archive via PhysFS, not unpacked. `getSource()` returns a path
-  *to* that archive, not a real directory you can concatenate module paths
-  onto and read via `io.open`/`loadfile` — and `love.filesystem.load`
-  (LÖVE's own sandboxed loader, which *should* be able to read into the
-  mounted archive) expects paths relative to the game's virtual root, not
-  OS-absolute strings like the ones this code constructs. So neither of
-  the two loaders in play can currently resolve modules on Android.
+  Confirmed working end to end: a clean install (`pm clear`, so no
+  leftover state) now boots through `require`, extracts ~2350 files to
+  `/data/data/<package>/files/save/OpenNefia/`, loads all ~50 mods
+  ("Loaded mods in 124.58ms"), and reaches real game-data validation — see
+  the next item, which was also fixed.
 
-  This needs someone to actually work through LÖVE's require-path /
-  `love.filesystem.setRequirePath` / PhysFS semantics rather than another
-  guess at path string surgery — worth checking how other actively
-  LÖVE-for-Android-shipped games handle this (`require` might just work
-  unmodified on 11.5a and this whole workaround needs removing, given it
-  predates the current love-android version), or asking upstream
-  (love-android's issue tracker / Discord).
+- **Fixed: a fresh install enables ~50 mods by default, and mod-data
+  validation was silently broken project-wide.** With the boot crash out
+  of the way, a clean-install run originally hit a fatal error in
+  `game/startup.lua:126`: `elona_sys.map_tileset:elona.jail: ... Table is
+  missing required field 'tiles'`, preceded by dozens of similar
+  validation errors. Investigating turned up something bigger than a
+  single bad tileset: `fields_strict_checker:check`
+  (`src/util/types.lua`) determined whether a data entry was missing a
+  required field via `local missing = next(remaining)` — which only ever
+  inspects **one arbitrary key** from the set of missing fields (Lua's
+  `next()` order depends on string hashing, which isn't guaranteed
+  stable across platforms/architectures) and returns success without
+  checking the rest. This let the vast majority of missing-required-field
+  errors pass silently, on this platform, indefinitely — Android's
+  different hash order is what caused `next()` to land on `tiles` and
+  actually catch the `elona.jail` case, while desktop `luajit` builds
+  happened to land on an already-optional field first and let it through.
+  Fixing the loop to check every missing field (not just one) surfaced
+  ~1500 previously-hidden validation errors across nearly every core data
+  type (items, characters, chips, spells, quests, weather, etc.) once all
+  ~50 mods were loaded together. Auditing all of them (see git history for
+  the full breakdown) found they fell into three buckets: the large
+  majority were schema fields that were never actually wired up as
+  required — sibling/duplicate fields on shadow data entries, fields with
+  runtime code that already null-checks them, or fields with an explicit
+  `default` that was never exempting them from strict validation — all
+  now correctly marked `types.optional(...)`; two were genuine content
+  gaps (`elona.home`'s `cozy_house`/`estate` entries and the debug
+  `elona.slug` race lacked realistic values, now optional too since
+  nothing in-engine crashes on their absence); none were unconditionally
+  dereferenced live code paths that would have crashed on `nil`. A clean
+  install now loads all ~50 mods and passes `verify --load-all-mods` with
+  zero errors, and the full test suite (316 tests) still passes.
 
-- **Game assets.** `src/game/startup.lua` copies sprite/sound assets from
-  `src/deps/elona` (the original Elona 1.22 freeware, fetched by
-  `runtime/setup.bat`) into the game's own asset folders on first run. That
-  folder isn't present by default, and the packaged `.love` here does not
-  include it — the app currently gets as far as the license/version-check
-  crash you'd also see running the desktop build without deps set up. This
-  is an asset-pipeline decision (bundle assets into the `.love` vs. some
-  on-device fetch flow) that's separate from the build-path question this
-  prototype answers, and needs its own call before this is playable.
+- **Game assets — confirmed working on both desktop and Android.**
+  `src/game/startup.lua` copies sprite/sound assets from `src/deps/elona`
+  (the original Elona 1.22 freeware) into the game's own asset folders
+  (`graphic/`, `mod/elona/sound/`) on first run via raw `io.open()` — this
+  only ever worked running unpacked from a real folder, since it can't
+  reach into a packaged `.love`/APK on any platform. Fixed the copy step
+  itself to skip silently when `deps/elona/...` isn't present
+  (`game/startup.lua`'s `copy_files()`), instead of erroring, on the
+  assumption that a packaged build ships assets already placed directly
+  into `graphic/`/`mod/elona/sound/` rather than expecting to copy them at
+  runtime.
+
+  On Android specifically, this now works *because* of the module-loading
+  fix above: once `boot.lua` extracts the source tree to a real directory,
+  `copy_files()`'s `io.open()` calls work exactly as they do on desktop.
+  The emulator run described above reached game-data validation, which
+  only happens after `check_dependencies()` runs — confirming the asset
+  copy step completed without error on-device, not just on desktop.
+
+  A real Elona 1.22 copy (`elona122.zip`, matching the layout
+  `runtime/setup.bat` expects) has since been sourced and extracted into
+  `src/deps/elona`. Verified end-to-end on desktop via the console runner
+  (no LÖVE/GUI install needed for this): `lib/luajit-2.0/luajit.exe
+  opennefia.lua --working-dir . verify` and `... test` both run clean
+  (272 graphic files + 165 sound files copied into `src/graphic/` and
+  `src/mod/elona/sound/`, full test suite passes). `src/deps`,
+  `src/graphic/*`, and `src/mod/elona/sound/*` are already gitignored, so
+  none of this lands in version control.
+
+  One thing to remember for future builds: the assets need to be present
+  under `src/graphic/`/`src/mod/elona/sound/` (or `src/deps/elona`)
+  *before* `src/` gets packaged into `game.love` by `build_apk.bat`/`build_apk`
+  — those scripts package `src/` as-is, so whichever of these folders
+  exist at build time is what ships in the APK.
 - **Touch input / mobile UI.** The UI layer stack was built for keyboard
   and mouse. No touch controls have been added.
 - **Release signing.** This build path produces a debug-signed APK only.

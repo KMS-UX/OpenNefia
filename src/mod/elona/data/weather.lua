@@ -24,12 +24,12 @@ data:add_type {
       },
       {
          name = "travel_speed_modifier",
-         type = types.callback({"turns", types.number}, types.number),
+         type = types.optional(types.callback({"turns", types.number}, types.number)),
          template = true
       },
       {
          name = "on_travel",
-         type = types.callback({"chara", types.map_object("base.chara"), "turns", types.number}, types.number),
+         type = types.optional(types.callback({"chara", types.map_object("base.chara"), "turns", types.number}, types.number)),
          template = true
       },
       {
@@ -39,7 +39,7 @@ data:add_type {
       },
       {
          name = "draw_callback",
-         type = types.callback(),
+         type = types.optional(types.callback()),
          template = true
       },
       {
@@ -49,7 +49,7 @@ data:add_type {
       },
       {
          name = "on_turn_start",
-         type = types.callback("chara", types.map_object("base.chara")),
+         type = types.optional(types.callback("chara", types.map_object("base.chara"))),
          template = true
       },
       {

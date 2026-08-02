@@ -938,8 +938,7 @@ do
          end
       end
 
-      local missing = next(remaining)
-      if missing then
+      for missing in pairs(remaining) do
          local checker = self.fields[missing]
          if not class.is_an(optional_checker, checker) then
             return false, ("Table is missing required field '%s' of type '%s'"):format(missing, checker)

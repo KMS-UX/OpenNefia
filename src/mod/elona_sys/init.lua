@@ -18,7 +18,7 @@ data:add_type {
       },
       {
          name = "reward",
-         type = types.data_id("elona_sys.quest_reward")
+         type = types.optional(types.data_id("elona_sys.quest_reward"))
       },
       {
          name = "reward_fix",
@@ -42,7 +42,7 @@ data:add_type {
       },
       {
          name = "expiration_hours",
-         type = types.callback({}, types.number)
+         type = types.optional(types.callback({}, types.number))
       },
       {
          name = "deadline_days",
@@ -78,7 +78,7 @@ data:add_type {
       },
       {
          name = "on_complete",
-         type = types.callback({}, types.locale_id)
+         type = types.optional(types.callback({}, types.locale_id))
       },
       {
          name = "on_time_expired",
@@ -144,7 +144,7 @@ data:add_type {
       },
       {
          name = "progress",
-         type = types.map(types.int, types.some(types.locale_id, types.callback({"flag", types.int}, types.string)))
+         type = types.optional(types.map(types.int, types.some(types.locale_id, types.callback({"flag", types.int}, types.string))))
       }
    }
 }
@@ -211,7 +211,7 @@ Function run when the magic is cast.
       },
       {
          name = "related_skill",
-         type = types.data_id("base.skill")
+         type = types.optional(types.data_id("base.skill"))
       },
       {
          name = "alignment",
@@ -219,7 +219,7 @@ Function run when the magic is cast.
       },
       {
          name = "cost",
-         type = types.number
+         type = types.optional(types.number)
       },
       {
          name = "range",
@@ -228,7 +228,7 @@ Function run when the magic is cast.
       },
       {
          name = "type",
-         type = types.literal("skill", "action", "effect")
+         type = types.optional(types.literal("skill", "action", "effect"))
       }
    },
 }
@@ -401,11 +401,11 @@ data:add_type {
       },
       {
          name = "query_text",
-         type = types.some(types.locale_id, types.callback({"ctxt", types.class(InventoryContext), "item", types.map_object("base.item")}, types.string))
+         type = types.optional(types.some(types.locale_id, types.callback({"ctxt", types.class(InventoryContext), "item", types.map_object("base.item")}, types.string)))
       },
       {
          name = "window_detail_header",
-         type = types.locale_id
+         type = types.optional(types.locale_id)
       },
       {
          name = "default_amount",
@@ -418,7 +418,7 @@ data:add_type {
       },
       {
          name = "params",
-         type = types.map(types.string, types.type)
+         type = types.optional(types.map(types.string, types.type))
       },
       {
          name = "keybinds",

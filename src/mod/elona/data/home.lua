@@ -13,7 +13,7 @@ data:add_type {
       },
       {
          name = "image",
-         type = types.data_id("base.chip")
+         type = types.optional(types.data_id("base.chip"))
       },
       {
          name = "value",

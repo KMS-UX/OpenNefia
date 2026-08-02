@@ -30,7 +30,7 @@ data:add_type {
          },
          {
             name = "on_event_triggered",
-            type = types.callback(),
+            type = types.optional(types.callback()),
             template = true
          },
          {
