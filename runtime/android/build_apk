@@ -26,7 +26,15 @@ fi
 echo "Packaging src/ into game.love..."
 GAME_LOVE="$(mktemp -u).love"
 pushd "$REPO_DIR/src" >/dev/null
-zip -rq -5 "$GAME_LOVE" .
+# Exclude local desktop save/config state (save/, temp/, global/ at the
+# src/ root - see api/SaveFs.lua's "save"/"temp"/"global" kinds) - these
+# accumulate from running the game or console tools on desktop and are
+# not meant to ship. A leftover global/config in particular breaks boot
+# on Android: it's written uncompressed by the lovemock console runner
+# but real LOVE's SaveFs unconditionally gzip-decompresses on read,
+# crashing before the title screen. These patterns only match at the
+# src/ root, so internal/global (real source) is unaffected.
+zip -rq -5 "$GAME_LOVE" . -x "save/*" "save" "temp/*" "temp" "global/*" "global"
 popd >/dev/null
 
 cp "$GAME_LOVE" "$LOVE_ANDROID_DIR/app/src/embed/assets/game.love"

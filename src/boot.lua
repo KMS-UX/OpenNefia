@@ -71,6 +71,20 @@ if love.system.getOS() == "Android" then
    -- LOVE2D_REQUIRES handling.
    local save_dir = love.filesystem.getSaveDirectory() .. "/"
    package.path = package.path:gsub('%./', save_dir)
+
+   -- package.path above only fixes require() (Lua's own module loaders).
+   -- Plenty of code elsewhere reads assets via raw io.open() on paths
+   -- like "graphic/map1.bmp" (see internal/binary_reader.lua, used by
+   -- internal/bmp_convert.lua for BMP loading) with no directory prefix
+   -- at all, relying on the OS process's actual current working
+   -- directory already being the game's source root - true on desktop
+   -- because it's launched from inside that directory, but not
+   -- something love-android sets up for us. Lua has no built-in chdir,
+   -- so reach for libc's directly via LuaJIT FFI (bionic on
+   -- Android/Linux always provides it).
+   local ffi = require("ffi")
+   ffi.cdef("int chdir(const char *path);")
+   ffi.C.chdir(save_dir)
 end
 
 -- We have to update LÖVE's require path which is completely separate

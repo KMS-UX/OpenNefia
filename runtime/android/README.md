@@ -1,14 +1,33 @@
 # Android build path (prototype)
 
-**Status: boots. The Lua module-loading crash that previously blocked
-everything is fixed and confirmed on a real emulator** (API 34, x86_64) —
-the game now gets past `require`, mod loading, and into actual game-data
-initialization, further than this prototype has ever reached before. A
-follow-up data-validation error it then hit (unrelated to Android — see
-first Known-gaps item for the full story) has also been fixed; a clean
-install now passes strict validation with all ~50 mods loaded and the full
-desktop test suite still green. Not yet re-confirmed on-device since the
-validation fix, but nothing in it is Android-specific.
+**Status: boots all the way to the title screen, confirmed on a real
+emulator** (API 34, x86_64) — a clean install now gets past `require`, mod
+loading, game-data validation, and config init, and lands on a stable,
+rendering "Starting Menu" screen that just sits there waiting for input
+(see next paragraph for the caveat on that last part). This is further
+than this prototype has ever reached before. Getting here past the
+previous known-good point (reaching game-data validation) took two more
+Android-specific bugs, both now fixed — see the first two Known-gaps
+items for the full story:
+
+1. Asset loads via raw `io.open()` (e.g. BMP loading in
+   `internal/binary_reader.lua`) used paths relative to the OS process's
+   working directory, which love-android never sets to the extracted
+   source tree the way desktop launches implicitly do. Fixed by having
+   `boot.lua` `chdir()` there directly via LuaJIT FFI.
+2. `build_apk.bat`/`build_apk` packaged *any* local desktop save/config
+   state sitting under `src/save`, `src/temp`, `src/global` straight into
+   `game.love` along with real source, since they just zip all of `src/`
+   as-is. A stray `global/config` left over from a desktop console run
+   crashed the game on first Android launch — it was written uncompressed
+   (the console runner has no `love.data`), but real LÖVE's `SaveFs`
+   unconditionally gzip-decompresses on read. Fixed by excluding those
+   three directories from packaging (and gitignoring them).
+
+Tapping the screen has no effect - see the touch-input Known-gaps item;
+this hasn't changed. Menu navigation past the title screen has not yet
+been confirmed on-device (needs either touch or a hooked-up hardware/soft
+keyboard to test further).
 
 A debug-signed, installable APK builds successfully from this repo's
 `src/` (`aapt2 dump badging` + `apksigner verify` both pass — package
@@ -201,6 +220,44 @@ anywhere beyond your own devices.
   install now loads all ~50 mods and passes `verify --load-all-mods` with
   zero errors, and the full test suite (316 tests) still passes.
 
+- **Fixed: asset loads via raw `io.open()` failed after mod loading
+  succeeded.** With the two bugs above fixed, a clean install got past mod
+  loading and validation but then crashed with `graphic/map1.bmp: No such
+  file or directory` the moment it tried to load its first image. The
+  module-loading fix above only rewrites `package.path` (used by
+  `require`); it doesn't touch the OS process's actual working directory.
+  Most asset loading goes through `love.filesystem` (PhysFS-backed, and
+  fine), but BMP loading (`internal/bmp_convert.lua` →
+  `internal/binary_reader.lua`, used because LÖVE doesn't read BMP
+  natively) opens files with plain `io.open()` on paths like
+  `"graphic/map1.bmp"` with no directory prefix at all — this only ever
+  worked because desktop launches happen to already have the OS working
+  directory set to the game's source root. love-android doesn't do that
+  for us. **Fix:** `boot.lua`'s Android branch now also points the real
+  OS working directory at the extracted save directory, via LuaJIT FFI
+  straight into libc's `chdir()` (Lua itself has no working-directory API,
+  and this only needs to work on Android/Linux's bionic libc, which always
+  provides it).
+
+- **Fixed: local desktop save/config state was getting packaged into the
+  APK and crashing first launch.** `build_apk.bat`/`build_apk` zip up all
+  of `src/` as-is to build `game.love`, with no exclusions. Both `save/`
+  and `global/` (via `api/SaveFs.lua`'s `"save"` and `"global"` kinds) are
+  real directories under `src/` used by desktop play/dev sessions to store
+  game and config state, and neither was gitignored — so a leftover
+  `src/global/config` from a prior desktop console-runner session ended up
+  bundled into `game.love`. On a fresh Android install, `boot.lua`'s
+  extraction step copies it straight into the app's save directory,
+  where the game reads it as if it were real prior state on the very
+  first launch, and crashes: `Could not decompress zlib/gzip-compressed
+  data`. The root cause is a format mismatch, not corruption — the
+  desktop console runner has no `love.data`, so `api/SaveFs.lua`'s
+  `compress()` silently no-ops and writes plaintext, while real LÖVE
+  always has `love.data` and unconditionally gzip-decompresses on read.
+  **Fix:** `build_apk.bat`/`build_apk` now exclude `save/`, `temp/`, and
+  `global/` at the `src/` root from packaging, and `.gitignore` now
+  covers them too so they don't reappear.
+
 - **Game assets — confirmed working on both desktop and Android.**
   `src/game/startup.lua` copies sprite/sound assets from `src/deps/elona`
   (the original Elona 1.22 freeware) into the game's own asset folders
@@ -236,7 +293,11 @@ anywhere beyond your own devices.
   — those scripts package `src/` as-is, so whichever of these folders
   exist at build time is what ships in the APK.
 - **Touch input / mobile UI.** The UI layer stack was built for keyboard
-  and mouse. No touch controls have been added.
+  and mouse. No touch controls have been added — confirmed on-device:
+  once boot reaches the title screen, tapping anywhere on the emulator
+  screen (via `adb shell input tap`) has no effect at all on the menu
+  cursor, so nothing already translates touch into usable input for this
+  codebase's UI stack.
 - **Release signing.** This build path produces a debug-signed APK only.
   A real release needs a proper keystore and the `assembleEmbedNoRecordRelease`
   / `bundleEmbedNoRecordRelease` targets (see love-android's

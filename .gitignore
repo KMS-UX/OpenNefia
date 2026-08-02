@@ -5,6 +5,9 @@ TAGS
 /src/mod/beautify/graphic
 /src/deps
 /src/internal/global/__COMMIT__.lua
+/src/global/
+/src/save/
+/src/temp/
 /doc/out
 /src/data/font/MS-Gothic.ttf
 /editor/vscode/out

@@ -21,7 +21,15 @@ if not "%JAVA_HOME_17%"=="" set JAVA_HOME=%JAVA_HOME_17%
 echo Packaging src\ into game.love...
 if exist "%TEMP%\game.love" del "%TEMP%\game.love"
 pushd "%~dp0..\..\src"
-"%~dp0..\7z.exe" a -tzip "%TEMP%\game.love" . -mx=5 -bd >nul
+rem Exclude local desktop save/config state (save/, temp/, global/ at the
+rem src/ root - see api/SaveFs.lua's "save"/"temp"/"global" kinds) - these
+rem accumulate from running the game or console tools on desktop and are
+rem not meant to ship. A leftover global/config in particular breaks boot
+rem on Android: it's written uncompressed by the lovemock console runner
+rem but real LOVE's SaveFs unconditionally gzip-decompresses on read,
+rem crashing before the title screen. -x! (no r) only matches these at
+rem the src/ root, so internal/global (real source) is unaffected.
+"%~dp0..\7z.exe" a -tzip "%TEMP%\game.love" . -mx=5 -bd -x!save -x!temp -x!global >nul
 if errorlevel 1 (
     popd
     echo Failed to package src\ into game.love.
