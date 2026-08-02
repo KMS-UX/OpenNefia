@@ -32,7 +32,7 @@ popd
 copy /Y "%TEMP%\game.love" "%LOVE_ANDROID_DIR%\app\src\embed\assets\game.love" >nul
 
 pushd "%LOVE_ANDROID_DIR%"
-call gradlew.bat assembleEmbedNoRecordDebug
+call .\gradlew.bat assembleEmbedNoRecordDebug
 set BUILD_RESULT=%errorlevel%
 popd
 

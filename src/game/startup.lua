@@ -32,7 +32,11 @@ local function copy_files(src, dest)
    local fs = require("util.fs")
 
    if not fs.exists(src) then
-      error(("Directory %s does not exist; does 'src/deps/elona' exist?"):format(src))
+      -- deps/elona is absent when running from a packaged build (.love/APK)
+      -- with assets already bundled directly into their destination
+      -- folders, rather than an unpacked checkout with the raw 1.22
+      -- freeware dropped in deps/elona for this step to copy from.
+      return
    end
 
    for _, name in fs.iter_directory_items(src) do

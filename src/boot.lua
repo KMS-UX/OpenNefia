@@ -21,23 +21,74 @@ if love == nil then
    love = require("util.lovemock")
 end
 
--- BUG: LÖVE for Android will not load relative paths for some reason,
--- probably due to a PhysFS bug. Due to this we have to expand the
--- relative paths in package.path ourselves and use functions like
--- love.filesystem.load instead of loadfile to go through LÖVE's
--- filesystem abstraction layer so the files can be found.
+-- On Android, love-android mounts the packaged game (game.love) as a
+-- packed archive via PhysFS rather than extracting it to a real folder
+-- on disk. That's fine for LÖVE's own PhysFS-aware APIs
+-- (love.filesystem.load/read/write/getInfo), but this codebase's own
+-- module system (internal.env's hooked `require`, installed further
+-- down, which almost everything past boot.lua goes through) resolves
+-- paths with vanilla `loadfile`/`io.open`, which only understands real
+-- OS files. That can never read into a packed archive on any platform,
+-- so on Android nothing past the first few requires below could load.
+--
+-- Fix: extract the whole mounted source tree to a real, writable
+-- directory (love.filesystem.getSaveDirectory(), which LÖVE guarantees
+-- is a real OS folder on every platform, used elsewhere in this
+-- codebase for the same reason - see util/fs.lua) on first launch, then
+-- point package.path/package.cpath at that real directory instead of
+-- the relative "./" patterns. Everything downstream - the hooked
+-- require, mod loading, the deps/elona asset copy in game/startup.lua -
+-- then works exactly as it does on desktop, because it's reading real
+-- files instead of a mounted archive.
 if love.system.getOS() == "Android" then
-   local absolute_dir = love.filesystem.getSource()
-   if not absolute_dir:match('/$') then
-      absolute_dir = absolute_dir .. "/"
+   local EXTRACTED_MARKER = ".extracted_to_save_dir"
+
+   if not love.filesystem.getInfo(EXTRACTED_MARKER) then
+      local function extract_dir(dir)
+         for _, name in ipairs(love.filesystem.getDirectoryItems(dir)) do
+            local path = dir == "" and name or (dir .. "/" .. name)
+            local info = love.filesystem.getInfo(path)
+            if info ~= nil and info.type == "directory" then
+               love.filesystem.createDirectory(path)
+               extract_dir(path)
+            elseif info ~= nil and info.type == "file" then
+               local data = love.filesystem.read(path)
+               if data ~= nil then
+                  love.filesystem.write(path, data)
+               end
+            end
+         end
+      end
+
+      extract_dir("")
+      love.filesystem.write(EXTRACTED_MARKER, "1")
    end
-   package.path = package.path:gsub('%./', absolute_dir)
+
+   -- Only package.path is rewritten here, not package.cpath: its one
+   -- non-Windows entry is "../lib/?.so" (no "./" prefix, so a "./"-based
+   -- gsub would mangle it), and native libraries aren't loaded through
+   -- it on Android regardless - see internal/env.lua's NATIVE_REQUIRES/
+   -- LOVE2D_REQUIRES handling.
+   local save_dir = love.filesystem.getSaveDirectory() .. "/"
+   package.path = package.path:gsub('%./', save_dir)
 end
 
 -- We have to update LÖVE's require path which is completely separate
 -- from package.path in order to make love.filesystem.load work
--- properly
-love.filesystem.setRequirePath(package.path)
+-- properly.
+--
+-- LÖVE's own loader resolves this path against its virtual filesystem
+-- via PhysFS, which (unlike a real OS directory) does not treat a
+-- leading "./" as a no-op: love.filesystem.getInfo("./ext/init.lua")
+-- returns nil even though getInfo("ext/init.lua") finds the file. Every
+-- entry we add to package.path above is "./"-prefixed, which is
+-- harmless for the OS-based vanilla Lua loader but silently breaks
+-- LÖVE's loader, so strip it per-entry before handing the path over.
+local love_require_path = {}
+for entry in package.path:gmatch("[^;]+") do
+   love_require_path[#love_require_path+1] = entry:gsub("^%./", "")
+end
+love.filesystem.setRequirePath(table.concat(love_require_path, ";"))
 
 -- globals that will be used very often.
 
