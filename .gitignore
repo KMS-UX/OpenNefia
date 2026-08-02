@@ -14,3 +14,4 @@ TAGS
 /editor/vscode/node_modules
 /editor/vscode/.vscode-test/
 .DS_Store
+/tools/quantum-effect/out/
