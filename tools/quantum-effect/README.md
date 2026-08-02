@@ -113,11 +113,15 @@ compares a candidate pixel only to the neighbour that reached it, so the
 fill follows QE's vignette/gradient backgrounds instead of stopping the
 instant the gradient drifts past a fixed tolerance.
 
-Known limit: a handful of icons (`potion-stamina.png`) have almost no
-contrast between subject and background to begin with - no keying strategy
-recovers those; the tool prints a warning when it clears >90% of an image
-(a sign it likely ate the subject) so they're easy to spot and triage by
-hand rather than shipped silently broken.
+Known limit: a handful of icons (`potion-stamina.png`, `elem-lightning.png`,
+`elem-nature.png`) have almost no contrast between subject and background to
+begin with - no keying strategy recovers those; the tool prints a warning
+when it clears >90% of an image (a sign it likely ate the subject) so
+they're easy to spot and triage by hand rather than shipped silently
+broken. Confirmed by hand for all three: lowering `-Tolerance` down to 16
+doesn't help (the fill still fragments the subject into disconnected
+speckles rather than leaving a clean silhouette) - this is a genuine
+source-contrast problem, not a tunable-parameter one.
 
 ### `slice_contact_sheet.ps1` - split multi-subject sheets
 
@@ -213,6 +217,28 @@ use `strip_caption.ps1` instead of `strip_bands.ps1`:
 .\strip_caption.ps1 -InputDir <sprites dir>\player -OutDir out\player_clean
 .\pack_sprites.ps1 -InputDir out\player_clean -OutSheet out\player_48.png
 ```
+
+For `icons/`, skip slicing *and* caption/band stripping - each file is
+already one subject, no contact sheet, no baked-in caption text. Just:
+
+```powershell
+.\dekey_alpha.ps1 -InputDir <icons dir> -OutDir out\icons_keyed
+.\pack_sprites.ps1 -InputDir out\icons_clean -OutSheet out\icons_48.png -Anchor center
+```
+
+(`-Anchor center` rather than the default `bottom` - items/icons read better
+centred in their cell than floor-anchored, per `pack_sprites.ps1`'s own
+`-Anchor` doc comment.) Validated against the full `icons/` set (35 files):
+32/35 packed clean with no per-file tuning. Three excluded after keying -
+`potion-stamina.png`, `elem-lightning.png`, `elem-nature.png` - all
+genuine low-contrast failures (see `dekey_alpha.ps1`'s "Known limit" above),
+confirmed by hand, not just by the >90%-cleared warning: the fill
+fragments each subject into disconnected speckles rather than a clean
+silhouette, and lowering `-Tolerance` to 16 doesn't fix it. One borderline
+case, `weapon-spear.png`, keeps 1-2 stray single-pixel islands after
+keying at the default tolerance (and still does at every tolerance tried,
+16 through 48) but the spear silhouette itself stays fully intact and
+recognizable - shipped as-is; the stray pixels are cosmetic at 48px scale.
 
 Not yet built: a slicer/cropper for "key art, not sprites" files (e.g.
 `bestiary/bosses/bio-leviathan.png`, a painterly illustration with a

@@ -9,7 +9,11 @@
 -- duplicates. `elona_id` is always cleared on the clone: it's an
 -- indexed+unique field in the schema (schemas.lua), and leaving the
 -- template's own value in place makes data:add hard-error on ID collision
--- during data loading.
+-- during data loading. `color` is also always cleared: several templates
+-- use it to palette-swap-tint a *shared* vanilla sprite (the golem family,
+-- red_wasp, chaos_mushroom, ...), and our chip art is unique per creature
+-- already, so a leftover tint would multiply an unwanted colour cast over
+-- unrelated art.
 --
 -- forest only has 6 rows: forest_07's chip is skipped (see
 -- data/chip_creatures.lua), so there is no forest_07 chara either.
@@ -134,6 +138,11 @@ for _, row in ipairs(rows) do
    clone._type = "base.chara"
    clone.image = "quantum_effect." .. id
    clone.elona_id = nil
+   -- Several templates (the golem family, red_wasp, chaos_mushroom, etc.)
+   -- set `color` to palette-swap-tint a *shared* vanilla sprite. Our chip
+   -- art is unique per creature already, so a leftover tint would just
+   -- multiply an unwanted colour cast over unrelated art.
+   clone.color = nil
    if level then
       clone.level = level
    end
