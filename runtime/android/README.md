@@ -24,10 +24,12 @@ items for the full story:
    unconditionally gzip-decompresses on read. Fixed by excluding those
    three directories from packaging (and gitignoring them).
 
-Tapping the screen has no effect - see the touch-input Known-gaps item;
-this hasn't changed. Menu navigation past the title screen has not yet
-been confirmed on-device (needs either touch or a hooked-up hardware/soft
-keyboard to test further).
+Tapping the screen still doesn't navigate menus - see the touch-input
+Known-gaps item for the detailed why (short version: touches do reach the
+engine correctly, but the title screen's list widget has no click support
+to receive them). Menu navigation past the title screen has not yet been
+confirmed on-device - needs either that widget-level touch work or a
+hooked-up hardware/soft keyboard to test further.
 
 A debug-signed, installable APK builds successfully from this repo's
 `src/` (`aapt2 dump badging` + `apksigner verify` both pass — package
@@ -292,12 +294,40 @@ anywhere beyond your own devices.
   *before* `src/` gets packaged into `game.love` by `build_apk.bat`/`build_apk`
   — those scripts package `src/` as-is, so whichever of these folders
   exist at build time is what ships in the APK.
-- **Touch input / mobile UI.** The UI layer stack was built for keyboard
-  and mouse. No touch controls have been added — confirmed on-device:
-  once boot reaches the title screen, tapping anywhere on the emulator
-  screen (via `adb shell input tap`) has no effect at all on the menu
-  cursor, so nothing already translates touch into usable input for this
-  codebase's UI stack.
+- **Touch input / mobile UI.** No touch controls have been added, but the
+  gap is narrower than "nothing works" — investigated on-device with
+  temporary debug logging around `internal/input.lua`'s
+  `mousepressed`/`mousemoved`/`mousereleased`:
+
+  - **The input plumbing already works.** love-android natively
+    synthesizes `love.mousepressed`/`mousemoved`/`mousereleased` from real
+    touch events (with `istouch=true`), the same as desktop mouse clicks.
+    A first attempt at this fix added a `love.touchpressed`/etc. bridge in
+    `internal/input.lua` on the assumption touches needed a separate path
+    — on-device logging showed that just double-fired every tap as two
+    `mousepressed` calls. That bridge was reverted (no net diff to
+    `main.lua`/`internal/input.lua`); nothing further is needed at this
+    layer.
+  - **The actual gap is one layer up, in the UI widget stack.**
+    `api/gui/UiList.lua` — the base list-menu widget used for the title
+    screen and most other menus — has no mouse/click support at all: no
+    `IMouseElement` hookup, no hit-testing of rendered item positions,
+    nothing. `api/gui/menu/MainTitleMenu.lua` (the title screen) only
+    binds keyboard input (`self.input.keys:forward_to(self.list)`), never
+    mouse. So a tap correctly reaches the engine and the active mouse
+    handler, but lands on a widget that was never built to notice it —
+    confirmed on-device: tapping the title screen at the "Generate an
+    Adventurer" row has zero effect on the cursor.
+  - `mod/mouse_ui` (enabled by default) adds mouse-clickable *button*
+    widgets elsewhere in the UI, but doesn't touch `UiList`, so it
+    doesn't change the above.
+
+  Making menus genuinely tappable means adding click/tap hit-testing to
+  `UiList` itself (or a from-scratch touch-first UI, if the plan is to
+  rebuild this layer for Quantum Effect rather than retrofit it) — a
+  cross-cutting change to a widget class used almost everywhere, not a
+  small one. Deliberately left undone this round pending a decision on
+  which direction that rebuild should take.
 - **Release signing.** This build path produces a debug-signed APK only.
   A real release needs a proper keystore and the `assembleEmbedNoRecordRelease`
   / `bundleEmbedNoRecordRelease` targets (see love-android's
