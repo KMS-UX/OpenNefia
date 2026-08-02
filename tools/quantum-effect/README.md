@@ -62,6 +62,37 @@ before it can be packed:
 
 The exception is `characters/sprites/` (254 files across `player`, `kira`,
 `trooper`, `colossus`) — genuine per-frame pixel art, named `<name>_rNN_fNN`,
-which packs cleanly today apart from a handful of label-contaminated frames.
+which packs cleanly today apart from a handful of label-contaminated frames
+(the first frame of several animation rows has a caption like `RUN (8
+FRAMES)` baked into the top of the image - pick a different frame from the
+same row rather than trying to crop it out).
 
 Slicing, de-labelling and curating the rest is the next piece of work.
+
+## Phase 1 spike: confirmed working on-device (2026-08-03)
+
+`src/mod/quantum_effect/` takes one clean frame per character (`player`,
+`kira`, `trooper`, `colossus`) through this pipeline and wires the result into
+OpenNefia as real `base.chip`/`base.chara` data, with Quickstart pointed at
+the QE player sprite. Verified end-to-end: `verify --load-all-mods` and the
+full desktop test suite (316 tests) both pass, and a clean install boots
+straight into gameplay on the Android emulator with the QE player sprite
+rendering correctly on a real map, HP/MP bars and all.
+
+Two non-obvious things learned building that mod, worth knowing before
+writing more `quantum_effect` data:
+
+- **`config` and `data` are mod-context globals** - no `require` needed in a
+  mod's `init.lua` (see `mod/cheat/init.lua`'s `config.base.themes` for the
+  same pattern). `require("internal.config")` fails from mod code with
+  "cannot load path" - internal engine modules aren't reachable that way.
+- **A runtime `config.base.x = y` assignment in `init.lua` does not survive
+  to actual gameplay.** Every real boot runs `game/startup.lua`, which
+  unconditionally calls `config_store.clear()` then `config_store.load()`
+  before anything reads config - `clear()` wipes whatever a mod set earlier,
+  and `load()` only restores a save file, which doesn't exist on a fresh
+  install. To change an effective default, edit the `base.config_option`
+  entry's `default` field instead, via
+  `data["base.config_option"]:edit(name, func)` (pattern copied from
+  `mod/base/init.lua`'s `data["base.effect"]:edit(...)`) - that runs before
+  the clear/load cycle, so the freshly-computed default picks it up.
