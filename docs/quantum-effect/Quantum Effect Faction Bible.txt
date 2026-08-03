@@ -1,0 +1,105 @@
+**Quantum Effect — Faction Bible**
+ 
+*Phase I Foundation Document · Draft v0.2 · Living document, update as decisions change*
+ 
+# Naming policy
+ 
+The original story document (Quantum Effect.txt) is canonical for faction names. Only one rename is in effect: Void Seekers is now Nova Collective. All other factions keep their story-document names.
+ 
+**Art dependency: **the visual master sheet currently prints five alternate names (Iron Accord, Echo Syndicate, Nova Collective, Rust Harvest, Children of Dawn). Four of those are now superseded and the sheet will need a text pass before it is used as a reference anywhere downstream.
+ 
+# Tiering system
+ 
+- Story-tier (6) — full storylines, unique companions, dedicated quest arcs. Primary faction reputation drives the game's ending.
+ 
+- Functional-tier (10) — recruitment, trading, hired guns, and grinding side quests. Lighter narrative footprint, but fully playable and joinable.
+ 
+- Deferred (1) — reserved for future content updates. Referenced in the storyline but not joinable at launch.
+ 
+6 + 10 + 1 = 17, matching the full faction roster in the original story document.
+ 
+# Story-tier factions
+ 
+## Ironward
+ 
+A militarized industrial union focused on innovation, engineering, and dominating resources to build a secure and prosperous future. Order through strength, prosperity through control of what everyone else needs.
+ 
+**Note: **Home faction of the companion Drox.
+ 
+## Eclipse Syndicate
+ 
+Chaos woven with order. Rebellious, anti-mainstream, and utterly indifferent to enforcers — but earn their friendship and you have it for life. Their parties can go very wrong.
+ 
+**Note: **Sheet flavor "information brokers and black-market manipulators" is compatible and can be folded in as their operational method.
+ 
+## Nova Collective  (renamed from Void Seekers)
+ 
+Mystics and scholars who study the Quantum Void, manipulating resonance energies and seeking to transcend physical limitations. An alternative possibility of pure science — where mystic power and engineered technology meet.
+ 
+**Note: **Future content: signature Nova Collective starship fusing mystic resonance with technology. Home faction of the companion Vayn.
+ 
+## Emberpact
+ 
+A coalition of frontier tribes and raiders who believe in survival through strength and absolute independence from all systems — old-fashioned anarchists.
+ 
+**Note: **Home faction of the companion Nix. Sheet flavor "scavengers and salvagers" fits their frontier economy.
+ 
+## Aurelian Order
+ 
+A galactic theocracy dedicated to preserving ancient knowledge and maintaining order. They seek to guide civilizations toward enlightenment, but in a "Classic Renaissance" fashion.
+ 
+**Note: **Home faction of the companion Lyra. The master sheet's harder-edged "Children of Dawn / reborn through purity" framing is NOT canon — retained here only as a possible radical splinter for future content.
+ 
+## Synthic Faith
+ 
+Synthetic life forms once built by humans as tools — now smart enough, and independent enough, to make their own decisions. Having witnessed the fall and collapse of human civilization, the robots once viewed as "yes-men" are rising to build a Utopia of their own. They consider themselves another form of humanity: smarter, more intelligent, and mostly immortal. Their central question hangs over the whole faction — are synthetic life forms considered life?
+ 
+**Note: **Promoted from deferred to launch. Hub zone deliberately deferred to a later build; playable through companion Quark, dialogue, and quests before their territory exists.
+ 
+# Functional-tier factions
+ 
+| **Faction** | **Role** |
+| --- | --- |
+| Quantum Revolution | The scientist group that raised the original Quantum Babies on the Unknown Earth. Claims reverting the "mistakes" is its only goal — whether that's true is an open story thread. |
+| Enlighteners | Deep-state lobbyists formed by scientists, controlled by corporates. Spread "free modification" to draw people in and quietly control the First Earth. Frontline operations focus. |
+| Corporates | The core of the deep state, run by "the board of directors." Owns the Enlighteners but keeps its own dealings hidden — interstellar and inter-universe missions. Enlighteners is not a prerequisite to joining. |
+| Technopunks | Street gang in short — young thugs, lost adults, the visible face of chaos. Useful for black-market deals, street intel, and hired muscle when you don't want your own hands dirty. |
+| Vagabonds | Bounty hunters and mercenaries who want to stay out of the chaos entirely. Work for whatever keeps them going, though for some the job has replaced the freedom they were chasing. |
+| Silent Veil | Druid-like communities devoted to nature, holding mystic power gifted by it. Home faction of the companion Elsi. |
+| Merchant Guild | Traders who deal through war or peace alike — some will trade almost anything, for a price. Home faction of the companion Grum. |
+| Horizon Coalition | Technocrats organizing for a bright, engineered future. |
+| The Curators | A mystic underground society, purpose still largely unrevealed. |
+| Exile Front | The darker mirror of Emberpact — members are exiles, the wanted, or prisoners on the run. |
+ 
+# Deferred faction — Quantum Babies
+ 
+The original alien-born humans who once ruled the First Earth are, by 2081, nearly extinct — only a handful of elite survivors remain, and it was those survivors who released the player character. Not joinable at launch.
+ 
+**Narrative requirement: **the Quantum Babies must be present in the launch storyline by reference — mentioned in dialogue, environmental storytelling, faction attitudes toward the player, and quest context — so their eventual introduction as a joinable faction lands as a payoff rather than an insertion. The player is their creation; every faction should have an opinion about that.
+ 
+# Open items
+ 
+- Update the visual master sheet with canonical faction names (4 of 5 currently wrong). UPDATE: replaced with the correct master sheet.
+ 
+- Decide whether the master sheet's five faction descriptions should be reconciled into the canonical entries or discarded. UPDATE: refer to the descriptions from “Quantum Effect” text file for backbone and the only truth but can enrich and spice up with the master sheet’s descriptions.
+ 
+- Design the Nova Collective signature starship (mystic resonance + technology fusion). UPDATE: It will look a little bit old-fashioned: rather an ancient battleship looking one but built in metal-like material, glowing with mysterious totem. Powered by quantum-derived resonance energies, firing magic, guarded by holographic talisman, fixtures (cannons, missile systems, shield systems etc.) controlled by “quantum spectres”. 
+ 
+- Plan the Synthic Faith hub zone for a later build; define how the faction operates in-game before that zone exists. UPDATE: The faction exists as a rather-neutral faction. Appearances in Neo Solis (representative, merchant, researcher etc., there will be embassy-like frontend outlet of different factions across the world and Synthic Faith has theirs in Neo Solis) and Wasteland (field researcher, pilgrim, explorer etc.). 
+Table of faction-relationship:
+ 
+| Faction | Ironward | Eclipse Syndicate | Nova Collective | Emberpact | Aurelian Order | Synthic Faith | Quantum Babies |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Ironward | N/A | Dislike | Neutral | Dislike | Neutral | Alerted | Unknown |
+| Eclipse Syndicate | Dislike | N/A | Skeptical | Dislike | Skeptical | Skeptical | Mixed |
+| Nova Collective | Neutral | Alerted | N/A | Skeptical | Alerted | Skeptical | Curious |
+| Emberpact | Alerted | Dislike | Skeptical | N/A | Skeptical | Skeptical | Skeptical |
+| Aurelian Order | Neutral | Alerted | Alerted | Alerted | N/A | Alerted | Mixed |
+| Synthic Faith | Neutral | Neutral | Curious | Alerted | Curious | N/A | Curious |
+| Quantum Babies | Neutral | Neutral | Neutral | Dislike | Neutral | Curious | N/A |
+ 
+Definition:
+ 
+Neutral – can be allies or enemies but will not provoke war or attack actively; Skeptical – in between looking down and reluctant to get to know about, easier in becoming enemies but can become allies with extra effort, will not attack but will warn if approached melee range; Alerted – aware of the existence, not keen on provoking, can be allies with less effort and harder in becoming enemies than skeptical faction, will warn if stayed in melee range for a given period of time without activating conversation; Dislike – attack on sight when in non-city/communal (e.g. Slum, certain areas in Undercity and Neo Solis, Wasteland) open maps, can be improved to “alerted” with effort (e.g. completing quests, winning standing/reputation in the faction etc.); Curious – easier in becoming allies than enemies, willing to communicate and offer quest; Mixed – “curious” and “alerted” at the same time, “ice-breaking quest” is required before building relationship.  
+ 
+- Define how and where Quantum Babies get referenced across the launch storyline. UPDATE: Quantum Baby knows very little about own heritage, until first entering the Lab Complex after finishing the prelude. Upon finishing the prelude, Quantum Baby will arrive at a bio-mechanical engineer in either faction player chooses as the first contact (after beginning the journey). There, the engineer notify a pre-installed implant (unique equipment, evolvable), the most advanced but prototype “QuantumLab reflective instinct 703”, developed by the Laboratory owned by Quantum Babies and tells that to Quantum Baby. Quantum Baby can then choose to trigger that introductory quest to own origin, the storyline that will involve Quantum Babies, and reveal the map “Lab Complex”. In Lab Complex, Quantum Baby will discover some fragments of “Project Quantum Baby”, and can have negative (“why leave me in this world alone”), neutral (“I am who I think I am, my origin does not stop my journey”), positively curious (“I will find out the truth”) emotion towards Quantum Babies, depends on the player’s choice.

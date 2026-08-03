@@ -1,0 +1,66 @@
+AI_CONTEXT/QE_DESIGN_BIBLE.md
+Quantum Effect - Master Design & Mechanics Bible
+Engine Context: OpenNefia (LÖVE / Lua) | Visuals: 16x16 Pixel Art
+1. Core Philosophy & Tone
+The Macro (Mass Effect): A vast, awe-inspiring, but deeply melancholic multiverse. The scale is interstellar and inter-dimensional.
+The Micro (Cyberpunk 2077): Gritty, street-level survival. High tech, low life. Absolute freedom to shape the world, commit atrocities, or become a savior.
+The "Limbo" Rule: The Multiverse is not a "take-two" or a way to fix mistakes. It is a graveyard of "what-ifs." Parallel universes are distant yet familiar. NPCs react to their sealed fates differently: some become nihilistic Technopunks, some fight to the bitter end, some bury their heads in the sand. The world feels alive through this varied, tragic realism.
+2. The "Scrap & Reskin" Translation Matrix
+We do not write new engine code. We exploit OpenNefia’s existing Elona systems and reskin them via Data Prototypes and Event Callbacks.
+Elona Base Mechanic
+Quantum Effect Reskin
+Implementation Strategy
+Ether / Etherwind
+Quantum Flux / Quantum Storms
+Reskin the weather/environmental hazard system.
+Ether Disease
+Quantum Corruption
+Reskin the mutation/debuff system. Causes physical/mental degradation.
+Gods / Religion
+Faction Patronage / Ideology
+Reskin the 8 Gods into major Factions. "Praying" = Pledging to an ideology for buffs.
+Magic / Mana
+Protocols / Compute Power
+Reskin spellbooks to "Data Chips". Mana = Battery/Compute.
+Magic Schools
+Tech Schools
+Elemental = Quantum/Plasma; Necromancy = Cyber-warfare; Conjuring = Drone Summoning.
+Mutations
+Quantumize (Overclocking)
+Reskin positive mutations. Grants massive buffs but acts like "poison" (drains HP/Energy).
+Overworld Map
+The Quantum Limbo
+Reskin the overworld tileset to nebulas/void. Player sprite = Starship/Vessel.
+Towns / Dungeons
+Hub Cities / Ruined Labs
+Reskin tilesets and NPC spawn tables.
+3. The Namesake Mechanic: "Quantum Effect"
+The "Quantum Effect" represents the scientifically unexplainable phenomena caused by Dark Matter/Quantum energy. In gameplay, it manifests as a dual-state risk/reward system tied to the player's exposure to the Quantum Limbo.
+A. Quantum Corruption (The Debuff / Degradation)
+Trigger: Exposure to "Quantum Storms" (Etherwind) in the Limbo or deep ruins.
+Effect: Acts like Elona's Ether Disease. Slowly mutates the Quantum Baby, causing stat debuffs, visual glitches, and eventually permanent physical/mental penalties if not treated with "Stabilizers" (Potions).
+Engine Hook: Use the native ether and mutation data tables.
+B. Quantumize (The Buff / Overclocking)
+Trigger: Intentionally installing unstable Bio-Mechanical Implants or using "Overclock" protocols.
+Effect: Grants massive, reality-bending buffs (extra turns, massive damage, hacking without compute). However, it is unstable. It acts like a "poison" or "curse" that continuously drains HP, Energy, or sanity until the player rests or uses "Coolants".
+Engine Hook: Use the native buff/debuff and equipment systems.
+4. Factions & "Gods" (Willpower in a Machine World)
+In a world reliant on machines, willpower and ideology are the only true "divine" forces.
+The Mechanic: We map Elona's 8 Gods to our major Factions (e.g., Quantum Revolution, Aurelian Order, Void Seekers, Synthic Faith).
+Gameplay: "Praying at an altar" becomes "Synchronizing with a Faction Beacon" or "Meditating on an Ideology". This grants temporary "Blessings" (Faction-specific buffs).
+Reputation: Acts exactly like Elona's God relations, but tied to Faction reputation. If you anger the Aurelian Order, they withhold their "blessings" and send assassins.
+5. Bio-Mechanical Augmentations & Mutations
+The Quantum Baby is a canvas for modification.
+Slots: We expand the native equipment slots. Head (Neuro), Arms/Legs (Limbs), Chest (Torso/Core), Back/Spine (Spinal).
+Gameplay: Installing an augmentation is equipping an item. However, to simulate "rejection" or "instability", heavy augmentations increase the player's "Quantum Weight" (Encumbrance) or trigger the Quantumize effect (draining HP for stats).
+Engine Hook: Extend the base.item prototype to include an is_augment = true flag, and use the equip event callbacks to apply the stat modifiers.
+6. Day-to-Day Loop & Economy
+The Grind: Scavenging pre-collapse ruins (dungeons) for tech; running smuggling routes through the Quantum Limbo (overworld); hunting bounties for the Vagabonds or Eclipse Syndicate.
+The Economy:
+Credits: Standard currency for basic goods, bribes, and faction dues.
+Quantum Shards / Data: Rare currency dropped by high-tier enemies or found in deep ruins. Used exclusively for high-end Bio-mechanical augmentations and ship upgrades.
+Absolute Freedom: The engine allows killing any NPC. If you turn a hub city into a slaughterhouse, the local faction's reputation drops to "Enemy", locking you out of their shops and triggering bounty hunters. The world reacts, but it does not stop.
+7. The Multiverse & The Quantum Limbo
+The Limbo (Overworld): The space between universes. Navigated via the repurposed Elona overworld map. Moving tile-by-tile represents interstellar/inter-dimensional travel. Random encounters here are "Void Anomalies" or "Pirates".
+Hub Zones (Maps/Towns): Planets, Faction HQs, and Cities are disconnected InstancedMap clusters.
+Quantum Warp: The transition between the Limbo and a Hub. Handled by a custom UI Layer that plays a distortion effect and loads the target map.

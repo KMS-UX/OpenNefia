@@ -1,0 +1,1378 @@
+We will design it so that:
+
+- A **Hub** is a playable map cluster.
+- A **Quantum Warp** is a data-driven transition between hubs.
+- A **Parallel Universe** is just higher-level metadata.
+- A future **Galaxy Map / Starship Map** can be layered on top without breaking the foundation.
+- Everything can be expanded bit by bit through OpenNefia-style mods and data prototypes.
+
+---
+
+# Quantum Effect — World & Hub Architecture Blueprint
+
+## Design Goal
+
+Create a scalable hub-zoning system for OpenNefia that supports:
+
+```text
+Parallel Universe
+↓
+Galaxy / Quantum Void
+↓
+System
+↓
+Earths / Planets
+↓
+Planet / Faction HQ
+↓
+Major City
+↓
+Area / Quantum Warp
+↓
+Architecture
+```
+
+But implement only the minimum living spine first:
+
+```text
+Hub Map A
+↓
+Warp Gate
+↓
+Warp Menu
+↓
+Hub Map B
+```
+
+This gives you a playable, expandable world system immediately.
+
+---
+
+# 1. Core Concept
+
+We will treat the world as a **graph**.
+
+## Nodes
+
+Nodes are places the player can exist.
+
+Examples:
+
+```text
+First Earth Slum
+Quantum Lab Ruins
+Aurelian Order Chapel
+Technopunk Alley
+Unknown Earth Outpost
+Quantum Baby Memorial
+```
+
+Each node is a **Hub**.
+
+## Edges
+
+Edges are connections between hubs.
+
+Examples:
+
+```text
+First Earth Slum → Quantum Lab Ruins
+Quantum Lab Ruins → First Earth Slum
+First Earth Slum → Technopunk Alley
+Aurelian Chapel → Aurelian Inner Sanctum
+```
+
+Each edge is a **Warp Route**.
+
+## Triggers
+
+Triggers are how the player accesses warp routes.
+
+Examples:
+
+```text
+Warp Gate
+Quantum Rift
+Elevator
+Hidden Passage
+Starship Boarding Terminal
+```
+
+In the first implementation, we use a **Warp Gate Feat**.
+
+---
+
+# 2. Scale Mapping
+
+The full *Quantum Effect* scale is massive, but we can map it cleanly onto hub architecture.
+
+| Quantum Effect Layer | OpenNefia Implementation | Initial Priority |
+|---|---|---:|
+| Parallel Universe | Data metadata / universe ID | Future |
+| Galaxy / Quantum Void | Data metadata / future UI | Future |
+| System | Data metadata / future UI | Future |
+| Earths / Planets | Data metadata / hub cluster | Future |
+| Planet / Faction HQ | Hub cluster | Medium |
+| Major City | Hub map | High |
+| Area / Quantum Warp | Warp route / zone transition | High |
+| Architecture | Interior map | High |
+
+For now, we only need to fully implement:
+
+```text
+Hub
+Warp Route
+Warp Gate
+Map Transition
+```
+
+The larger cosmic layers can exist as metadata from day one, so future systems do not require painful refactoring.
+
+---
+
+# 3. Proposed Mod Structure
+
+We will create a new mod:
+
+```text
+qe_world
+```
+
+This mod owns world metadata, hubs, warp routes, and Quantum Warp transitions.
+
+Recommended folder structure:
+
+```text
+mod/qe_world/
+  mod.lua
+  init.lua
+
+  api/
+    world.lua
+    warp.lua
+    hub_map.lua
+
+  data/
+    types.lua
+    hubs.lua
+    warp_routes.lua
+    feats.lua
+
+  event/
+    warp.lua
+    save.lua
+
+  ui/
+    warp_menu.lua
+
+  locale/
+    en/
+      world.lua
+      warp.lua
+
+  graphic/
+    feat/
+    ui/
+    fx/
+
+  sound/
+    warp/
+
+  test/
+    world_test.lua
+    warp_test.lua
+```
+
+---
+
+# 4. Data Schema Draft
+
+These are target schemas. The exact OpenNefia data declaration syntax should be adapted to the engine’s current data API, but the logical structure should stay like this.
+
+---
+
+## 4.1 Hub Prototype
+
+A Hub is a meaningful place the player can travel to.
+
+Example schema:
+
+```lua
+qe.world.hub
+```
+
+Fields:
+
+```text
+_id
+_type
+name
+description
+universe
+galaxy
+system
+planet
+region
+map_id
+entry_position
+discovered_by_default
+music
+theme
+tags
+```
+
+Example:
+
+```lua
+data:add {
+    _id = "qe.hub.first_earth_slum",
+    _type = "qe.world.hub",
+
+    name = "First Earth Slum",
+
+    universe = "qe.universe.first_earth_branch",
+    galaxy = "qe.galaxy.local_cluster",
+    system = "qe.system.sol_prime",
+    planet = "qe.planet.first_earth",
+    region = "qe.region.slum_district",
+
+    map_id = "qe.map.first_earth_slum",
+
+    entry_position = {
+        x = 12,
+        y = 18,
+    },
+
+    discovered_by_default = false,
+
+    tags = {
+        "city",
+        "first_earth",
+        "starter_area",
+    },
+}
+```
+
+Another example:
+
+```lua
+data:add {
+    _id = "qe.hub.quantum_lab_ruins",
+    _type = "qe.world.hub",
+
+    name = "Quantum Lab Ruins",
+
+    universe = "qe.universe.first_earth_branch",
+    galaxy = "qe.galaxy.local_cluster",
+    system = "qe.system.sol_prime",
+    planet = "qe.planet.first_earth",
+    region = "qe.region.restricted_zone",
+
+    map_id = "qe.map.quantum_lab_ruins",
+
+    entry_position = {
+        x = 8,
+        y = 10,
+    },
+
+    discovered_by_default = false,
+
+    tags = {
+        "ruins",
+        "quantum",
+        "story_area",
+    },
+}
+```
+
+---
+
+## 4.2 Warp Route Prototype
+
+A Warp Route is a directed or bidirectional connection between hubs.
+
+Example schema:
+
+```text
+qe.world.warp_route
+```
+
+Fields:
+
+```text
+_id
+_type
+name
+from_hub
+to_hub
+bidirectional
+required_flag
+required_item
+cost
+instability
+unlock_event
+description
+```
+
+Example:
+
+```lua
+data:add {
+    _id = "qe.warp_route.first_earth_slum_to_quantum_lab",
+    _type = "qe.world.warp_route",
+
+    name = "Distorted Lab Route",
+
+    from_hub = "qe.hub.first_earth_slum",
+    to_hub = "qe.hub.quantum_lab_ruins",
+
+    bidirectional = true,
+
+    required_flag = nil,
+    required_item = nil,
+
+    cost = {
+        quantum_charge = 0,
+    },
+
+    instability = 1,
+
+    description = "A faint quantum resonance leads toward the ruined laboratory.",
+}
+```
+
+For the first playable version, keep the cost free:
+
+```lua
+cost = {
+    quantum_charge = 0,
+}
+```
+
+Later, this can become:
+
+```lua
+cost = {
+    quantum_charge = 5,
+    sanity = 2,
+}
+```
+
+Or:
+
+```lua
+cost = {
+    item = "qe.item.quantum_cell",
+    amount = 1,
+}
+```
+
+---
+
+## 4.3 Warp Gate Prototype
+
+The Warp Gate is the physical object the player interacts with.
+
+Example:
+
+```lua
+data:add {
+    _id = "qe.feat.warp_gate",
+    _type = "base.feat",
+
+    name = "Warp Gate",
+
+    graphic = "QE_PROP_WARP_GATE_001",
+
+    description = "A dormant quantum gateway hums faintly.",
+
+    tags = {
+        "qe_warp_gate",
+    },
+}
+```
+
+The exact interaction hook depends on how OpenNefia exposes feat interaction. We can implement it either through:
+
+1. A built-in interact callback, if available.
+2. A global event callback.
+3. A custom QE interaction API.
+
+The safest architecture is to keep the actual logic inside:
+
+```text
+qe_world/api/warp.lua
+```
+
+So the feat only says:
+
+```text
+Player interacted with a warp gate.
+```
+
+Then the Warp API decides what happens.
+
+---
+
+# 5. Runtime Flow
+
+This is the full flow for a Quantum Warp.
+
+```text
+Player interacts with Warp Gate
+↓
+QE Warp API receives interaction
+↓
+Determine current Hub
+↓
+Find available Warp Routes from current Hub
+↓
+Filter locked routes
+↓
+Open Warp Menu UI Layer
+↓
+Player selects destination
+↓
+UI returns selected route
+↓
+Apply warp cost / effects
+↓
+Trigger warp feedback
+↓
+Transition player to destination Hub Map
+↓
+Update discovered hubs / save data
+↓
+Emit warp completion event
+```
+
+---
+
+# 6. API Design
+
+We want the actual logic to be cleanly reusable.
+
+---
+
+## 6.1 `api/world.lua`
+
+This module answers world queries.
+
+Planned functions:
+
+```lua
+World.get_hub(hub_id)
+World.get_hub_by_map(map)
+World.get_routes_from_hub(hub_id)
+World.is_route_available(route_id)
+World.discover_hub(hub_id)
+World.is_hub_discovered(hub_id)
+World.get_current_hub(chara)
+```
+
+Example pseudo-implementation:
+
+```lua
+local World = {}
+
+function World.get_hub(hub_id)
+    return data["qe.world.hub"][hub_id]
+end
+
+function World.get_routes_from_hub(hub_id)
+    local routes = {}
+
+    for _, route in pairs(data["qe.world.warp_route"]) do
+        if route.from_hub == hub_id then
+            table.insert(routes, route)
+        end
+    end
+
+    return routes
+end
+
+function World.is_hub_discovered(hub_id)
+    local save = Save.get_qe_world_save()
+
+    if save.discovered_hubs[hub_id] then
+        return true
+    end
+
+    local hub = World.get_hub(hub_id)
+
+    return hub.discovered_by_default
+end
+
+function World.discover_hub(hub_id)
+    local save = Save.get_qe_world_save()
+    save.discovered_hubs[hub_id] = true
+end
+
+return World
+```
+
+---
+
+## 6.2 `api/warp.lua`
+
+This module handles Quantum Warp behavior.
+
+Planned functions:
+
+```lua
+Warp.interact_with_gate(chara, feat)
+Warp.open_warp_menu(chara, hub)
+Warp.execute_route(chara, route)
+Warp.apply_cost(chara, route)
+Warp.apply_instability(chara, route)
+Warp.can_use_route(chara, route)
+```
+
+Example pseudo-implementation:
+
+```lua
+local Warp = {}
+
+function Warp.interact_with_gate(chara, feat)
+    local hub = World.get_current_hub(chara)
+
+    if not hub then
+        -- Fallback message: unstable location
+        return
+    end
+
+    local routes = World.get_routes_from_hub(hub._id)
+
+    if #routes == 0 then
+        -- Message: The gate has no destination.
+        return
+    end
+
+    local selected_route = Warp.open_warp_menu(chara, routes)
+
+    if selected_route then
+        Warp.execute_route(chara, selected_route)
+    end
+end
+
+function Warp.execute_route(chara, route)
+    if not Warp.can_use_route(chara, route) then
+        return
+    end
+
+    Warp.apply_cost(chara, route)
+    Warp.apply_instability(chara, route)
+
+    local destination_hub = World.get_hub(route.to_hub)
+
+    World.discover_hub(destination_hub._id)
+
+    -- Transition to destination map here.
+
+    Event.trigger("qe.event.warp_completed", chara, route)
+end
+
+return Warp
+```
+
+---
+
+# 7. UI Layer Design
+
+The Warp Menu is an OpenNefia UI layer.
+
+It should be simple at first.
+
+## First version
+
+A list of destinations:
+
+```text
+Quantum Warp
+> First Earth Slum
+> Quantum Lab Ruins
+> Leave
+```
+
+Later it can become:
+
+```text
+Quantum Warp
+[First Earth]
+  > First Earth Slum
+  > Quantum Lab Ruins
+  > Deep-State Memorial
+
+[Unknown Earth]
+  > Revolutionary Outpost
+  > Quantum Cradle Ruins
+
+[Locked]
+  > ???
+```
+
+But for now, keep it simple.
+
+---
+
+## UI Layer Responsibilities
+
+The UI layer should only do these things:
+
+```text
+Display available routes
+Allow player selection
+Return selected route
+Cancel safely
+```
+
+It should not directly mutate world state.
+
+The Warp API handles consequences.
+
+---
+
+## Proposed UI file
+
+```text
+mod/qe_world/ui/warp_menu.lua
+```
+
+Conceptual structure:
+
+```lua
+local WarpMenu = class.class("QE_WarpMenu", { base.IUiLayer })
+
+function WarpMenu:init(chara, routes)
+    self.chara = chara
+    self.routes = routes
+    self.selected_index = 1
+end
+
+function WarpMenu:update()
+    -- Handle up/down/confirm/cancel
+    -- If confirmed:
+    --     return self.routes[self.selected_index]
+    -- If cancelled:
+    --     return nil
+end
+
+function WarpMenu:draw()
+    -- Draw title
+    -- Draw route list
+    -- Draw selection arrow
+end
+
+return WarpMenu
+```
+
+The exact base UI layer class and input handling should be adapted from OpenNefia’s UI examples.
+
+---
+
+# 8. Map Transition Design
+
+This is the most technically important part.
+
+We need a safe way to say:
+
+```text
+Move this character from current hub map to destination hub map.
+```
+
+We should wrap this in an API:
+
+```text
+api/hub_map.lua
+```
+
+Planned functions:
+
+```lua
+HubMap.load_hub_map(hub_id)
+HubMap.transfer_chara_to_hub(chara, hub_id)
+HubMap.place_chara_at_entry(chara, hub)
+HubMap.register_map_hub_relationship(map, hub_id)
+```
+
+Conceptual flow:
+
+```lua
+function HubMap.transfer_chara_to_hub(chara, hub_id)
+    local hub = World.get_hub(hub_id)
+
+    if not hub then
+        error("Unknown QE hub: " .. tostring(hub_id))
+    end
+
+    local destination_map = HubMap.load_hub_map(hub)
+
+    -- Remove chara from current map
+    -- Insert chara into destination map
+    -- Place at hub.entry_position
+    -- Set player camera/focus if necessary
+    -- Save current hub and last position
+end
+```
+
+We should not scatter map transition code across many mods. All transitions should go through this API.
+
+---
+
+# 9. Save Data Design
+
+Because this is a growing project, save data must be planned carefully.
+
+We will store QE world state inside a dedicated save namespace.
+
+Example:
+
+```lua
+save.qe_world = {
+    current_universe = "qe.universe.first_earth_branch",
+    current_hub = "qe.hub.first_earth_slum",
+
+    discovered_hubs = {
+        ["qe.hub.first_earth_slum"] = true,
+    },
+
+    unlocked_routes = {
+        ["qe.warp_route.first_earth_slum_to_quantum_lab"] = true,
+    },
+
+    last_location = {
+        hub_id = "qe.hub.first_earth_slum",
+        x = 12,
+        y = 18,
+    },
+
+    warp_count = 0,
+    quantum_instability = 0,
+}
+```
+
+This lets us support:
+
+- Returning to previous locations.
+- Fast travel later.
+- Story unlocks.
+- Faction unlocks.
+- Parallel universe tracking.
+- Quantum instability effects.
+- Save-safe hub discovery.
+
+---
+
+# 10. Event Hooks
+
+We should use events so future mods can react to world travel.
+
+Proposed QE events:
+
+```text
+qe.event.warp_gate_interact
+qe.event.warp_menu_opened
+qe.event.warp_route_selected
+qe.event.warp_begin
+qe.event.warp_completed
+qe.event.hub_discovered
+qe.event.hub_entered
+```
+
+Example uses:
+
+## Faction mod
+
+```text
+On hub entered, if faction is present, update local faction influence.
+```
+
+## Companion mod
+
+```text
+On warp begin, companion may comment.
+```
+
+## Augmentation mod
+
+```text
+On warp completed, certain augmentations reduce quantum instability.
+```
+
+## Quest mod
+
+```text
+On hub discovered, update quest objective.
+```
+
+## Original Sin system
+
+```text
+On warp completed, increase hidden corruption value.
+```
+
+This is where the “Quantum Effect” begins to feel systemic.
+
+---
+
+# 11. First Playable Content
+
+For the first real implementation, we should create two hubs.
+
+---
+
+## Hub 01: First Earth Slum
+
+Purpose:
+
+```text
+Starting street-level hub.
+```
+
+Theme:
+
+```text
+Crowded, worn down, post-Quantumization urban decay.
+```
+
+Gameplay role:
+
+```text
+Player learns movement, interaction, and first warp gate.
+```
+
+Hub ID:
+
+```text
+qe.hub.first_earth_slum
+```
+
+Map ID:
+
+```text
+qe.map.first_earth_slum
+```
+
+Asset IDs:
+
+```text
+ENV_SLUM_001
+PROP_WARP_GATE_001
+UI_WARP_MENU_001
+FX_WARP_FLASH_001
+```
+
+---
+
+## Hub 02: Quantum Lab Ruins
+
+Purpose:
+
+```text
+First mysterious destination.
+```
+
+Theme:
+
+```text
+Broken science, quantum residue, abandoned experiment.
+```
+
+Gameplay role:
+
+```text
+Proves warp transition works.
+```
+
+Hub ID:
+
+```text
+qe.hub.quantum_lab_ruins
+```
+
+Map ID:
+
+```text
+qe.map.quantum_lab_ruins
+```
+
+Asset IDs:
+
+```text
+ENV_QUANTUM_LAB_001
+PROP_LAB_TERMINAL_001
+FX_QUANTUM_LEAK_001
+```
+
+---
+
+# 12. First Warp Route
+
+Route ID:
+
+```text
+qe.warp_route.first_earth_slum_to_quantum_lab
+```
+
+Behavior:
+
+```text
+Bidirectional
+No cost
+No requirement
+Adds small quantum instability
+```
+
+Why bidirectional?
+
+Because it makes testing and early gameplay much easier.
+
+The player can go:
+
+```text
+Slum → Lab
+Lab → Slum
+```
+
+This proves the world graph works.
+
+---
+
+# 13. Asset Requirements
+
+These are the first assets needed for Option B.
+
+## Props
+
+```text
+PROP_WARP_GATE_001
+```
+
+A warp gate object that can be placed in a hub map.
+
+Possible visual ideas:
+
+- Broken ring-shaped device.
+- Floating quantum shards.
+- Deep-state experimental gate.
+- Glowing cyan/violet core.
+
+---
+
+## UI
+
+```text
+UI_WARP_MENU_001
+```
+
+A simple sci-fi frame or panel for the warp menu.
+
+Optional:
+
+```text
+UI_WARP_ICON_001
+UI_WARP_ARROW_001
+```
+
+---
+
+## FX
+
+```text
+FX_WARP_FLASH_001
+```
+
+A short distortion or flash when warping.
+
+Optional later:
+
+```text
+FX_QUANTUM_LEAK_001
+FX_WARP_PORTAL_IDLE_001
+```
+
+---
+
+## Audio
+
+```text
+AUDIO_WARP_TRIGGER_001
+AUDIO_WARP_COMPLETE_001
+AUDIO_WARP_MENU_LOOP_001
+```
+
+For first implementation, sound can be optional.
+
+---
+
+# 14. Implementation Milestones
+
+Here is the practical build order.
+
+---
+
+## Milestone 0 — Create `qe_world` mod skeleton
+
+Deliverables:
+
+```text
+mod/qe_world/mod.lua
+mod/qe_world/init.lua
+mod/qe_world/api/world.lua
+mod/qe_world/api/warp.lua
+mod/qe_world/data/hubs.lua
+mod/qe_world/data/warp_routes.lua
+```
+
+Goal:
+
+```text
+The mod loads without errors.
+```
+
+---
+
+## Milestone 1 — Define two hubs
+
+Deliverables:
+
+```text
+qe.hub.first_earth_slum
+qe.hub.quantum_lab_ruins
+```
+
+Goal:
+
+```text
+World API can read both hubs.
+```
+
+---
+
+## Milestone 2 — Define one warp route
+
+Deliverable:
+
+```text
+qe.warp_route.first_earth_slum_to_quantum_lab
+```
+
+Goal:
+
+```text
+World API can find a route from Slum to Lab.
+```
+
+---
+
+## Milestone 3 — Add Warp Gate feat
+
+Deliverable:
+
+```text
+qe.feat.warp_gate
+```
+
+Goal:
+
+```text
+A warp gate object can be placed on a map.
+```
+
+---
+
+## Milestone 4 — Implement interaction
+
+Deliverable:
+
+```text
+Interacting with warp gate calls Warp.interact_with_gate()
+```
+
+Goal:
+
+```text
+The game recognizes the player wants to warp.
+```
+
+---
+
+## Milestone 5 — Implement Warp Menu
+
+Deliverable:
+
+```text
+QE_WarpMenu UI layer
+```
+
+Goal:
+
+```text
+Player can choose destination or cancel.
+```
+
+---
+
+## Milestone 6 — Implement map transition
+
+Deliverable:
+
+```text
+HubMap.transfer_chara_to_hub()
+```
+
+Goal:
+
+```text
+Player physically moves from Slum to Lab.
+```
+
+---
+
+## Milestone 7 — Add save data
+
+Deliverable:
+
+```text
+save.qe_world
+```
+
+Goal:
+
+```text
+Discovered hubs and current hub persist after reload.
+```
+
+---
+
+## Milestone 8 — Add warp feedback
+
+Deliverables:
+
+```text
+Screen flash
+Sound
+Message
+Instability increment
+```
+
+Goal:
+
+```text
+Warping feels like a Quantum Effect.
+```
+
+---
+
+# 15. Acceptance Criteria
+
+Option B is complete when the following are true.
+
+## Functional criteria
+
+```text
+1. Player can stand in First Earth Slum.
+2. Player can interact with a Warp Gate.
+3. A Warp Menu appears.
+4. The menu shows Quantum Lab Ruins.
+5. Selecting it transitions the player to Quantum Lab Ruins.
+6. Player can use a Warp Gate in Quantum Lab Ruins to return.
+7. Save/load preserves discovered hubs.
+8. Save/load preserves current hub.
+9. Adding a new hub requires mostly data entry.
+10. Adding a new route requires mostly data entry.
+```
+
+## Architectural criteria
+
+```text
+1. No hub-specific logic is hardcoded into the map.
+2. Warp routes are data-driven.
+3. UI does not directly modify world state.
+4. Transition logic is centralized.
+5. Save data is namespaced under qe_world.
+6. Future systems can listen to warp events.
+```
+
+---
+
+# 16. Future Extensions Built Into This Design
+
+This architecture intentionally leaves room for future features.
+
+---
+
+## Future Starship Travel
+
+Later, a warp route can have a travel mode:
+
+```lua
+travel_mode = "quantum_warp"
+```
+
+Or:
+
+```lua
+travel_mode = "starship"
+```
+
+The same route system can power:
+
+```text
+Planet to planet
+System to system
+Galaxy to galaxy
+```
+
+---
+
+## Future Galaxy Map
+
+The galaxy map can simply be another UI layer that reads:
+
+```text
+qe.world.hub
+qe.world.system
+qe.world.galaxy
+```
+
+No core rewrite required.
+
+---
+
+## Future Faction Control
+
+Factions can later modify route availability:
+
+```text
+If Technopunks control the Slum, unlock hidden route.
+If Enlighteners lock down the Lab, route becomes unavailable.
+```
+
+---
+
+## Future Quantum Instability
+
+Each warp can increase:
+
+```text
+save.qe_world.quantum_instability
+```
+
+Later, high instability can cause:
+
+```text
+Wrong destination
+Enemy ambush
+Parallel Earth variant
+Companion mutation
+Visual distortion
+Unique quest trigger
+```
+
+---
+
+## Future Original Sin Effects
+
+Each warp can also emit:
+
+```text
+qe.event.original_sin_exposure
+```
+
+This can feed the larger moral/corruption simulation later.
+
+---
+
+# 17. Important Doubts to Resolve Before Coding
+
+I have a few practical design questions before we begin writing the actual implementation plan.
+
+---
+
+## Question 1: First two hubs
+
+I propose:
+
+```text
+Hub A: First Earth Slum
+Hub B: Quantum Lab Ruins
+```
+
+Do you approve these as the first two hubs?
+
+If not, which two hubs should we use first?
+
+---
+
+## Question 2: Warp cost
+
+For feasibility, I recommend the first warp be free:
+
+```text
+Quantum Charge cost: 0
+```
+
+Do you want it to remain free for now?
+
+Or should we stub a simple resource immediately, such as:
+
+```text
+Quantum Cell
+Quantum Charge
+Stability
+```
+
+---
+
+## Question 3: Warp trigger object
+
+I recommend starting with a physical map object:
+
+```text
+Warp Gate
+```
+
+Alternative options:
+
+```text
+A menu command
+A floor tile
+A story trigger
+A temporary quantum rift
+```
+
+Do you approve Warp Gate as the first trigger?
+
+---
+
+## Question 4: Transition style
+
+For first implementation, should the warp be:
+
+```text
+A. Instant teleport
+B. Fade out / fade in
+C. Flash effect + message
+```
+
+I recommend **C**, because it is simple but gives the Quantum Warp identity.
+
+---
+
+# 18. My Recommended Default Setup
+
+If you want to move quickly, I recommend this default:
+
+```text
+First Hub: First Earth Slum
+Second Hub: Quantum Lab Ruins
+Trigger: Warp Gate
+Route: Bidirectional
+Cost: Free
+Feedback: Flash + message
+Save: Track discovered hubs and current hub
+Architecture: Data-driven qe_world mod
+```
+
+This gives us the fastest stable foundation.

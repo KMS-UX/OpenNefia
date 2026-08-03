@@ -1,0 +1,1527 @@
+> **Option A: The Quantum Baby Schema**
+
+This blueprint is designed to be:
+
+- Feasibility-first.
+- OpenNefia-native.
+- Mod-friendly.
+- AI-assistant-friendly.
+- Expandable over time.
+- Safe for continuous development.
+
+---
+
+# 1. Locked Defaults for Option A
+
+## Core Resources
+
+We will use four protagonist resources:
+
+```text
+Quantum Energy
+Humanity
+Original Sin
+Sync Rate
+```
+
+## Starting Values
+
+Recommended starting values:
+
+| Resource | Start | Min | Max |
+|---|---:|---:|---:|
+| Quantum Energy | 10 | 0 | 50 |
+| Humanity | 100 | 0 | 100 |
+| Original Sin | 0 | 0 | 100 |
+| Sync Rate | 25 | 0 | 100 |
+
+These are placeholder values, but they are good enough for system testing.
+
+---
+
+## Augmentation Slots
+
+We will use four slots:
+
+```text
+Neuro
+Limbs
+Torso
+Spinal
+```
+
+Starting slot states:
+
+| Slot | Starting State |
+|---|---|
+| Neuro | Unlocked |
+| Limbs | Unlocked |
+| Torso | Locked |
+| Spinal | Unlocked |
+
+Each slot initially supports:
+
+```text
+1 installed augment
+```
+
+Slot capacity can be expanded later.
+
+---
+
+## Test Augmentations
+
+We will create three placeholder augments:
+
+```text
+Basic Neuro Chip
+Limb Servo
+Spinal Reflex Booster
+```
+
+Their purpose is not balance. Their purpose is to prove that:
+
+- Slots work.
+- Installation works.
+- Removal works.
+- Resource costs work.
+- Modifiers work.
+- Save/load persistence works.
+
+---
+
+## Player Creation
+
+For Option A, we will not build a full character creator.
+
+Instead:
+
+```text
+The player is treated as a Quantum Baby by initializing QE state on the player character.
+```
+
+This can happen through:
+
+- A new-game initialization event.
+- A save-load initialization event.
+- A debug command.
+
+This keeps the first implementation small.
+
+---
+
+## UI
+
+No final UI yet.
+
+We will use:
+
+```text
+Debug commands
+Log output
+Test assertions
+```
+
+A proper Quantum Baby status screen can come later.
+
+---
+
+# 2. Option A Definition of Done
+
+Option A is complete when:
+
+1. A `qe_core` mod loads inside OpenNefia.
+2. The Quantum Baby state can be initialized.
+3. The four resources can be read and modified safely.
+4. The four augmentation slots exist.
+5. Three test augments can be installed and removed.
+6. Installing an augment applies effects.
+7. Removing an augment removes reversible effects.
+8. Original Sin gains are permanent by default.
+9. The state survives save/load.
+10. Debug commands can inspect and modify the state.
+11. The schema is documented.
+
+---
+
+# 3. Naming and Namespaces
+
+We should separate three naming systems:
+
+## Mod Name
+
+```text
+qe_core
+```
+
+This is the OpenNefia mod folder and namespace.
+
+---
+
+## Data IDs
+
+Use lowercase namespaced IDs:
+
+```text
+qe_core.chara.quantum_baby
+
+qe_core.resource.quantum_energy
+qe_core.resource.humanity
+qe_core.resource.original_sin
+qe_core.resource.sync_rate
+
+qe_core.augment_slot.neuro
+qe_core.augment_slot.limbs
+qe_core.augment_slot.torso
+qe_core.augment_slot.spinal
+
+qe_core.augment.neuro_basic
+qe_core.augment.limb_servo
+qe_core.augment.spinal_reflex
+```
+
+---
+
+## Production Asset IDs
+
+These follow your existing guidebook convention:
+
+```text
+CHR_QB_001
+
+AUG_NEURO_BASIC_v01
+AUG_LIMB_SERVO_v01
+AUG_SPINAL_REFLEX_v01
+
+UI_QE_DEBUG_STATE_v01
+```
+
+For Option A, these assets can be placeholders.
+
+---
+
+# 4. Proposed `qe_core` Folder Structure
+
+This follows OpenNefia’s mod conventions.
+
+```text
+mod/qe_core/
+  mod.lua
+  init.lua
+
+  api/
+    QE.lua
+    Core.lua
+    QuantumBaby.lua
+    Resources.lua
+    Augments.lua
+    Events.lua
+    Debug.lua
+
+  data/
+    qe_core/
+      resource.lua
+      augment_slot.lua
+      augment.lua
+    chara/
+      quantum_baby.lua
+
+  event/
+    save.lua
+    chara.lua
+    augment.lua
+    debug.lua
+
+  internal/
+    global.lua
+
+  locale/
+    en/
+      qe_core/
+        core.lua
+        resource.lua
+        augment_slot.lua
+        augment.lua
+        debug.lua
+
+  graphic/
+    placeholder/
+
+  sound/
+    placeholder/
+
+  test/
+    quantum_baby_test.lua
+    resources_test.lua
+    augment_test.lua
+```
+
+---
+
+# 5. Core Data Schema Draft
+
+We need three main data types:
+
+```text
+qe_core.resource
+qe_core.augment_slot
+qe_core.augment
+```
+
+The exact OpenNefia data registration syntax must be validated against the actual codebase, but the conceptual schema should look like this.
+
+---
+
+## 5.1 `qe_core.resource`
+
+Purpose:
+
+Defines a Quantum Effect resource type.
+
+Fields:
+
+```text
+id
+name
+description
+min
+max
+default_value
+default_max
+can_exceed_max
+regen_per_turn
+ui_color
+tags
+```
+
+Example:
+
+```lua
+{
+    type = "qe_core.resource",
+    id = "qe_core.resource.quantum_energy",
+    name = "Quantum Energy",
+    description = "Energy used to fuel Quantum Effects and augmented abilities.",
+    min = 0,
+    max = 50,
+    default_value = 10,
+    default_max = 50,
+    can_exceed_max = false,
+    regen_per_turn = 0,
+    ui_color = { r = 80, g = 180, b = 255 },
+    tags = { "quantum", "energy" },
+}
+```
+
+We will define four resources:
+
+```text
+qe_core.resource.quantum_energy
+qe_core.resource.humanity
+qe_core.resource.original_sin
+qe_core.resource.sync_rate
+```
+
+---
+
+## 5.2 `qe_core.augment_slot`
+
+Purpose:
+
+Defines a bio-mechanical augmentation slot.
+
+Fields:
+
+```text
+id
+name
+description
+order
+default_unlocked
+capacity
+allowed_tags
+ui_slot_name
+```
+
+Example:
+
+```lua
+{
+    type = "qe_core.augment_slot",
+    id = "qe_core.augment_slot.neuro",
+    name = "Neuro Slot",
+    description = "Neural and brain-interface augmentation slot.",
+    order = 10,
+    default_unlocked = true,
+    capacity = 1,
+    allowed_tags = { "neuro", "brain", "chip", "cognitive" },
+    ui_slot_name = "Neuro",
+}
+```
+
+Slots:
+
+```text
+qe_core.augment_slot.neuro
+qe_core.augment_slot.limbs
+qe_core.augment_slot.torso
+qe_core.augment_slot.spinal
+```
+
+---
+
+## 5.3 `qe_core.augment`
+
+Purpose:
+
+Defines an augmentation that can be installed into a slot.
+
+Fields:
+
+```text
+id
+name
+description
+slot
+tier
+grade
+rarity
+asset_id
+required_sync_rate
+humanity_max_loss
+humanity_loss_permanent
+original_sin_gain
+quantum_energy_cost
+stat_modifiers
+resource_modifiers
+tags
+flags
+```
+
+Example:
+
+```lua
+{
+    type = "qe_core.augment",
+    id = "qe_core.augment.neuro_basic",
+    name = "Basic Neuro Chip",
+    description = "A simple neural coprocessor that improves Quantum Energy capacity.",
+    slot = "qe_core.augment_slot.neuro",
+    tier = 1,
+    grade = "common",
+    rarity = "common",
+    asset_id = "AUG_NEURO_BASIC_v01",
+    required_sync_rate = 10,
+    humanity_max_loss = 2,
+    humanity_loss_permanent = false,
+    original_sin_gain = 1,
+    quantum_energy_cost = 0,
+    stat_modifiers = {
+        {
+            target = "qe.stat.neural_amp",
+            mode = "add",
+            value = 1,
+        },
+    },
+    resource_modifiers = {
+        {
+            target = "qe_core.resource.quantum_energy",
+            field = "max",
+            mode = "add",
+            value = 5,
+        },
+    },
+    tags = { "neuro", "chip", "basic" },
+    flags = {},
+}
+```
+
+---
+
+# 6. Placeholder Test Augments
+
+These are the first three augments we will implement.
+
+---
+
+## 6.1 Basic Neuro Chip
+
+```text
+ID:
+qe_core.augment.neuro_basic
+
+Slot:
+Neuro
+
+Effects:
++5 maximum Quantum Energy
++1 Neural Amp
+
+Cost:
+-2 maximum Humanity while installed
++1 Original Sin on install
+```
+
+Purpose:
+
+Tests resource max modification and slot installation.
+
+---
+
+## 6.2 Limb Servo
+
+```text
+ID:
+qe_core.augment.limb_servo
+
+Slot:
+Limbs
+
+Effects:
++1 Physical Amp
+
+Cost:
+-3 maximum Humanity while installed
++1 Original Sin on install
+```
+
+Purpose:
+
+Tests physical/stat-style modifiers.
+
+---
+
+## 6.3 Spinal Reflex Booster
+
+```text
+ID:
+qe_core.augment.spinal_reflex
+
+Slot:
+Spinal
+
+Effects:
++1 Reflex Amp
++5 Action Efficiency
+
+Cost:
+-4 maximum Humanity while installed
++2 Original Sin on install
+Requires Sync Rate 20
+```
+
+Purpose:
+
+Tests requirements and turn/action-related modifiers.
+
+---
+
+# 7. Abstract Stat Modifiers
+
+To avoid depending too early on unknown Elona/OpenNefia stat fields, we should first use abstract QE modifier targets.
+
+Recommended abstract targets:
+
+```text
+qe.stat.neural_amp
+qe.stat.physical_amp
+qe.stat.reflex_amp
+qe.stat.action_efficiency
+qe.stat.quantum_amp
+```
+
+Later, we can map these to actual OpenNefia stats once we inspect the character/stat system.
+
+Example:
+
+```text
+qe.stat.neural_amp
+  → intelligence, mental stat, or skill-related bonus
+
+qe.stat.physical_amp
+  → strength, physical power, or melee capability
+
+qe.stat.reflex_amp
+  → speed, evasion, or action timing
+
+qe.stat.action_efficiency
+  → turn cost reduction or action speed
+```
+
+For Option A, it is acceptable if these only exist inside QE state at first. The important part is that the modifier pipeline works.
+
+---
+
+# 8. Quantum Baby Save State Schema
+
+We need a save-safe state object.
+
+Use versioning from day one.
+
+```text
+QE_CORE_SAVE_VERSION = 1
+```
+
+---
+
+## Proposed State Shape
+
+```lua
+{
+    version = 1,
+
+    archetype = "qe_core.chara.quantum_baby",
+
+    resources = {
+        current = {
+            ["qe_core.resource.quantum_energy"] = 10,
+            ["qe_core.resource.humanity"] = 100,
+            ["qe_core.resource.original_sin"] = 0,
+            ["qe_core.resource.sync_rate"] = 25,
+        },
+
+        max = {
+            ["qe_core.resource.quantum_energy"] = 50,
+            ["qe_core.resource.humanity"] = 100,
+            ["qe_core.resource.original_sin"] = 100,
+            ["qe_core.resource.sync_rate"] = 100,
+        },
+
+        base_max = {
+            ["qe_core.resource.quantum_energy"] = 50,
+            ["qe_core.resource.humanity"] = 100,
+            ["qe_core.resource.original_sin"] = 100,
+            ["qe_core.resource.sync_rate"] = 100,
+        },
+    },
+
+    slots = {
+        unlocked = {
+            ["qe_core.augment_slot.neuro"] = true,
+            ["qe_core.augment_slot.limbs"] = true,
+            ["qe_core.augment_slot.torso"] = false,
+            ["qe_core.augment_slot.spinal"] = true,
+        },
+
+        installed = {
+            ["qe_core.augment_slot.neuro"] = nil,
+            ["qe_core.augment_slot.limbs"] = nil,
+            ["qe_core.augment_slot.torso"] = nil,
+            ["qe_core.augment_slot.spinal"] = nil,
+        },
+    },
+
+    permanent = {
+        humanity_max_loss = 0,
+        original_sin_gained = 0,
+    },
+
+    flags = {},
+
+    history = {
+        installed_augments = {},
+        uninstalled_augments = {},
+        resource_changes = {},
+    },
+}
+```
+
+We can decide during Milestone 1 whether this state should be stored:
+
+1. On the player character object.
+2. In mod-level save data.
+3. In both, with the mod-level save as the source of truth.
+
+For feasibility, mod-level save data keyed to the player is safest.
+
+---
+
+# 9. Public API Design
+
+The public API should be split into focused modules.
+
+---
+
+## 9.1 `QE.Core`
+
+Purpose:
+
+Versioning, save state access, initialization, migration.
+
+Functions:
+
+```text
+QE.Core.get_version()
+QE.Core.get_save_data()
+QE.Core.ensure_save_data()
+QE.Core.migrate_save_data(save_data)
+QE.Core.get_player_state()
+QE.Core.initialize_player_state(chara)
+```
+
+---
+
+## 9.2 `QE.QuantumBaby`
+
+Purpose:
+
+Protagonist-specific helpers.
+
+Functions:
+
+```text
+QE.QuantumBaby.is_quantum_baby(chara)
+QE.QuantumBaby.mark_as_quantum_baby(chara)
+QE.QuantumBaby.get_state(chara)
+QE.QuantumBaby.ensure_state(chara)
+QE.QuantumBaby.get_flag(chara, key)
+QE.QuantumBaby.set_flag(chara, key, value)
+```
+
+---
+
+## 9.3 `QE.Resources`
+
+Purpose:
+
+Safe resource modification.
+
+Functions:
+
+```text
+QE.Resources.get(chara, resource_id)
+QE.Resources.get_max(chara, resource_id)
+QE.Resources.get_base_max(chara, resource_id)
+
+QE.Resources.set(chara, resource_id, value)
+QE.Resources.set_max(chara, resource_id, value)
+
+QE.Resources.add(chara, resource_id, amount)
+QE.Resources.spend(chara, resource_id, amount)
+QE.Resources.can_spend(chara, resource_id, amount)
+
+QE.Resources.modify_max(chara, resource_id, amount)
+QE.Resources.recalculate_max(chara)
+```
+
+Rules:
+
+```text
+Values are clamped between min and max.
+Max values are recalculated from base_max + modifiers.
+Resource changes emit events.
+```
+
+---
+
+## 9.4 `QE.Augments`
+
+Purpose:
+
+Augmentation slot and installation logic.
+
+Functions:
+
+```text
+QE.Augments.get_slot_state(chara, slot_id)
+QE.Augments.is_slot_unlocked(chara, slot_id)
+QE.Augments.unlock_slot(chara, slot_id)
+QE.Augments.lock_slot(chara, slot_id)
+
+QE.Augments.get_installed(chara, slot_id)
+QE.Augments.get_all_installed(chara)
+
+QE.Augments.can_install(chara, augment_id)
+QE.Augments.install(chara, augment_id)
+QE.Augments.uninstall(chara, slot_id)
+
+QE.Augments.recalculate_modifiers(chara)
+```
+
+---
+
+## 9.5 `QE.Events`
+
+Purpose:
+
+Central event naming and emission.
+
+Functions:
+
+```text
+QE.Events.emit(name, payload)
+QE.Events.register(name, callback, priority)
+```
+
+This gives future mods a stable hook surface.
+
+---
+
+## 9.6 `QE.Debug`
+
+Purpose:
+
+Testing and inspection commands.
+
+Functions:
+
+```text
+QE.Debug.print_state(chara)
+QE.Debug.install_augment(chara, augment_id)
+QE.Debug.uninstall_slot(chara, slot_id)
+QE.Debug.add_resource(chara, resource_id, amount)
+QE.Debug.set_resource(chara, resource_id, value)
+QE.Debug.unlock_slot(chara, slot_id)
+QE.Debug.lock_slot(chara, slot_id)
+QE.Debug.reset_state(chara)
+```
+
+---
+
+# 10. Event Design
+
+We need two kinds of events:
+
+1. OpenNefia engine events.
+2. QE custom events.
+
+The exact engine event names must be validated in Milestone 1.
+
+---
+
+## 10.1 Engine Events to Investigate
+
+We should look for events similar to:
+
+```text
+After save data initialization
+After save load
+After player character creation
+Before/after character stat calculation
+Before/after turn action
+On mod startup
+```
+
+In OpenNefia’s architecture, event callbacks are the main way to extend logic, so this is the correct place to hook.
+
+---
+
+## 10.2 QE Custom Events
+
+These are stable event names exposed by `qe_core`.
+
+```text
+qe_core.initialized
+
+qe_core.state.initialized
+qe_core.state.before_migrate
+qe_core.state.after_migrate
+
+qe_core.resource.before_change
+qe_core.resource.after_change
+qe_core.resource.max_recalculated
+
+qe_core.augment.before_install
+qe_core.augment.after_install
+qe_core.augment.before_uninstall
+qe_core.augment.after_uninstall
+
+qe_core.slot.before_unlock
+qe_core.slot.after_unlock
+qe_core.slot.before_lock
+qe_core.slot.after_lock
+
+qe_core.modifiers.recalculated
+
+qe_core.debug.command_executed
+```
+
+Future systems can subscribe to these without editing core logic.
+
+---
+
+# 11. Modifier Pipeline
+
+We should avoid directly mutating base stats whenever possible.
+
+Instead:
+
+```text
+Installed Augments
+↓
+Collect Modifier List
+↓
+Apply Modifier Pipeline
+↓
+Update QE Modifier Cache
+↓
+Emit qe_core.modifiers.recalculated
+↓
+Optional: Hook into OpenNefia stat/action events
+```
+
+---
+
+## Modifier Object Shape
+
+```lua
+{
+    source = "qe_core.augment.neuro_basic",
+    target = "qe.stat.neural_amp",
+    mode = "add",
+    value = 1,
+}
+```
+
+Supported modes initially:
+
+```text
+add
+multiply
+```
+
+We may later add:
+
+```text
+set
+clamp
+base_add
+final_add
+```
+
+But for Option A, keep it simple.
+
+---
+
+# 12. Debug Commands
+
+If OpenNefia has a console or debug command system, we should use it.
+
+If not, we can expose debug functions through tests or a debug UI layer later.
+
+Proposed commands:
+
+```text
+qe_state
+qe_resources
+qe_slots
+qe_augments
+
+qe_install <augment_id>
+qe_uninstall <slot_id>
+
+qe_add_resource <resource_id> <amount>
+qe_set_resource <resource_id> <value>
+
+qe_unlock_slot <slot_id>
+qe_lock_slot <slot_id>
+
+qe_reset
+```
+
+Examples:
+
+```text
+qe_install qe_core.augment.neuro_basic
+qe_install qe_core.augment.limb_servo
+qe_install qe_core.augment.spinal_reflex
+
+qe_uninstall qe_core.augment_slot.neuro
+
+qe_add_resource qe_core.resource.quantum_energy 10
+
+qe_set_resource qe_core.resource.humanity 80
+
+qe_state
+```
+
+---
+
+# 13. Milestone Plan
+
+Now that defaults are locked, this is the actual execution path.
+
+---
+
+## Milestone 1: OpenNefia Extension Inspection
+
+Goal:
+
+Confirm how OpenNefia expects mods to register data, save data, and hook events.
+
+This is the most important next step because the architecture document gives high-level guidance, but we need to validate exact APIs.
+
+### Inspection Targets
+
+Check:
+
+```text
+src/internal/data/schemas.lua
+src/internal/data_table.lua
+src/api/Event.lua
+src/api/Chara.lua
+mod/base/
+mod/elona/event/save.lua
+mod/elona/data/
+```
+
+### Questions to Answer
+
+1. How does a mod define a new data type?
+2. How does a mod add new data prototypes?
+3. How does mod save data get initialized?
+4. What event is used after save load?
+5. How can we identify the player character?
+6. Where are character stats calculated?
+7. Is there an existing debug console or command API?
+8. Can `qe_core` depend only on `base`, or must it temporarily depend on `elona_sys`/`elona`?
+
+### Deliverable
+
+A short inspection report:
+
+```text
+OpenNefia Integration Notes
+- Data registration method:
+- Save initialization method:
+- Player character access method:
+- Stat hook method:
+- Debug command method:
+- Required dependencies:
+- Risks:
+```
+
+Exit condition:
+
+We know exactly where `qe_core` should hook into OpenNefia.
+
+---
+
+## Milestone 2: Create `qe_core` Skeleton
+
+Goal:
+
+Create the mod structure and make it load.
+
+### Tasks
+
+1. Create `mod/qe_core`.
+2. Add `mod.lua`.
+3. Add `init.lua`.
+4. Add API folder.
+5. Add data folder.
+6. Add event folder.
+7. Add locale folder.
+8. Add test folder.
+9. Confirm the mod loads without errors.
+
+### Deliverable
+
+```text
+mod/qe_core
+```
+
+### Exit Condition
+
+OpenNefia starts with `qe_core` enabled.
+
+---
+
+## Milestone 3: Define Core Data Types
+
+Goal:
+
+Register QE data types.
+
+### Data Types
+
+```text
+qe_core.resource
+qe_core.augment_slot
+qe_core.augment
+```
+
+### Deliverable
+
+Data files:
+
+```text
+data/qe_core/resource.lua
+data/qe_core/augment_slot.lua
+data/qe_core/augment.lua
+```
+
+### Exit Condition
+
+The game can query:
+
+```text
+qe_core.resource.quantum_energy
+qe_core.augment_slot.neuro
+qe_core.augment.neuro_basic
+```
+
+---
+
+## Milestone 4: Define Quantum Baby Prototype
+
+Goal:
+
+Define the protagonist archetype.
+
+### Deliverable
+
+```text
+data/chara/quantum_baby.lua
+```
+
+### Conceptual Prototype
+
+```text
+qe_core.chara.quantum_baby
+```
+
+This may be a `base.chara` prototype, a component, or a QE metadata layer depending on how OpenNefia handles character extensions.
+
+### Exit Condition
+
+The player can be marked or recognized as:
+
+```text
+qe_core.chara.quantum_baby
+```
+
+---
+
+## Milestone 5: Implement Save State
+
+Goal:
+
+Create and migrate QE save data.
+
+### Tasks
+
+1. Create `event/save.lua`.
+2. Initialize default save state.
+3. Add version field.
+4. Add migration hook.
+5. Ensure repeated initialization does not duplicate state.
+
+### Deliverable
+
+```text
+event/save.lua
+api/Core.lua
+```
+
+### Exit Condition
+
+A valid QE state exists after starting or loading a game.
+
+---
+
+## Milestone 6: Implement Resource API
+
+Goal:
+
+Allow safe resource changes.
+
+### Tasks
+
+1. Implement get/set/add/spend.
+2. Clamp values.
+3. Recalculate max values.
+4. Emit resource events.
+5. Add debug resource commands.
+
+### Deliverable
+
+```text
+api/Resources.lua
+```
+
+### Exit Condition
+
+This works:
+
+```text
+qe_add_resource qe_core.resource.quantum_energy 10
+```
+
+And the state remains valid.
+
+---
+
+## Milestone 7: Implement Augmentation API
+
+Goal:
+
+Allow installation and removal of augments.
+
+### Tasks
+
+1. Check slot unlock state.
+2. Check slot occupancy.
+3. Check Sync Rate requirement.
+4. Apply Humanity max loss.
+5. Apply Original Sin gain.
+6. Store installed augment ID.
+7. Recalculate modifiers.
+8. Emit events.
+
+### Deliverable
+
+```text
+api/Augments.lua
+```
+
+### Exit Condition
+
+This works:
+
+```text
+qe_install qe_core.augment.neuro_basic
+qe_uninstall qe_core.augment_slot.neuro
+```
+
+---
+
+## Milestone 8: Implement Modifier Recalculation
+
+Goal:
+
+Make augments mechanically meaningful.
+
+### Tasks
+
+1. Collect modifiers from installed augments.
+2. Build modifier cache.
+3. Apply resource max modifiers.
+4. Apply abstract QE stat modifiers.
+5. Emit recalculated event.
+
+### Deliverable
+
+```text
+api/Augments.lua
+event/augment.lua
+```
+
+### Exit Condition
+
+Installing Basic Neuro Chip increases maximum Quantum Energy by 5.
+
+---
+
+## Milestone 9: Hook Into Gameplay
+
+Goal:
+
+Connect QE modifiers to OpenNefia’s turn/stat system where possible.
+
+### Tasks
+
+1. Find stat calculation or turn action hooks.
+2. Add QE modifier listener.
+3. If real stat hooks are unclear, expose QE-derived stats only for now.
+4. Document which real stats are affected.
+
+### Deliverable
+
+```text
+event/chara.lua
+```
+
+### Exit Condition
+
+At least one augment modifies a visible or queryable gameplay value.
+
+If no safe hook is found yet, the fallback is:
+
+```text
+Augment modifiers exist in QE state and are exposed through API.
+```
+
+That is still acceptable for Option A, as long as it is documented.
+
+---
+
+## Milestone 10: Tests and Documentation
+
+Goal:
+
+Lock the foundation.
+
+### Tests
+
+```text
+test/quantum_baby_test.lua
+test/resources_test.lua
+test/augment_test.lua
+```
+
+### Documentation
+
+```text
+Documentation/Technical/qe_core_schema.md
+Documentation/Technical/qe_core_api.md
+Documentation/Design/quantum_baby_state.md
+Documentation/Design/augmentation_slots.md
+```
+
+### Exit Condition
+
+A future session can continue without rediscovering the system.
+
+---
+
+# 14. QA Checklist for Option A
+
+We can use this as the final acceptance checklist.
+
+## Mod Load
+
+- [ ] `qe_core` loads without errors.
+- [ ] Locale files load.
+- [ ] Data prototypes load.
+- [ ] No base engine files were edited.
+
+---
+
+## State Initialization
+
+- [ ] Quantum Baby state initializes.
+- [ ] State includes version.
+- [ ] State includes resources.
+- [ ] State includes slots.
+- [ ] State includes permanent effects.
+- [ ] Initialization is idempotent.
+
+---
+
+## Resources
+
+- [ ] Quantum Energy can be read.
+- [ ] Quantum Energy can be added.
+- [ ] Quantum Energy can be spent.
+- [ ] Humanity can be modified.
+- [ ] Original Sin can be modified.
+- [ ] Sync Rate can be modified.
+- [ ] Values clamp correctly.
+- [ ] Max values recalculate correctly.
+
+---
+
+## Slots
+
+- [ ] Neuro slot exists.
+- [ ] Limbs slot exists.
+- [ ] Torso slot exists.
+- [ ] Spinal slot exists.
+- [ ] Torso starts locked.
+- [ ] Locked slots reject installation.
+- [ ] Unlocked slots accept installation.
+
+---
+
+## Augments
+
+- [ ] Basic Neuro Chip can install.
+- [ ] Limb Servo can install.
+- [ ] Spinal Reflex Booster can install.
+- [ ] Install checks Sync Rate.
+- [ ] Install applies Humanity max loss.
+- [ ] Install adds Original Sin.
+- [ ] Uninstall removes reversible modifiers.
+- [ ] Original Sin remains after uninstall.
+- [ ] Reinstall works cleanly.
+
+---
+
+## Save/Load
+
+- [ ] Save creates QE state.
+- [ ] Load restores QE state.
+- [ ] Resources persist.
+- [ ] Installed augments persist.
+- [ ] Slot unlock states persist.
+- [ ] Permanent effects persist.
+- [ ] Save version persists.
+
+---
+
+# 15. First Implementation Prompt
+
+When you are ready to ask an AI coding assistant to begin implementation, you can use a prompt like this:
+
+```text
+Create an OpenNefia mod named qe_core.
+
+The mod must not edit base engine files.
+
+Its purpose is to add the Quantum Effect protagonist foundation.
+
+Create the following folder structure:
+
+mod/qe_core/
+  mod.lua
+  init.lua
+  api/
+  data/
+  event/
+  internal/
+  locale/
+  test/
+
+The mod should define three new data types:
+
+qe_core.resource
+qe_core.augment_slot
+qe_core.augment
+
+It should define four resources:
+
+qe_core.resource.quantum_energy
+qe_core.resource.humanity
+qe_core.resource.original_sin
+qe_core.resource.sync_rate
+
+It should define four augmentation slots:
+
+qe_core.augment_slot.neuro
+qe_core.augment_slot.limbs
+qe_core.augment_slot.torso
+qe_core.augment_slot.spinal
+
+It should define three test augments:
+
+qe_core.augment.neuro_basic
+qe_core.augment.limb_servo
+qe_core.augment.spinal_reflex
+
+The mod should initialize mod save data with a version field.
+
+Do not implement full UI.
+
+Focus on data loading, save initialization, and clean module structure.
+
+Follow OpenNefia mod conventions.
+
+Avoid depending on the elona mod unless absolutely necessary.
+
+If an OpenNefia API is uncertain, mark it with a TODO comment and explain what needs to be validated.
+```
+
+---
+
+# 16. Second Implementation Prompt: State API
+
+After the skeleton exists, use something like this:
+
+```text
+Inside the OpenNefia mod qe_core, implement the Quantum Baby state API.
+
+Create api/QuantumBaby.lua and api/Resources.lua.
+
+The Quantum Baby state should include:
+
+version
+archetype
+resources.current
+resources.max
+resources.base_max
+slots.unlocked
+slots.installed
+permanent.humanity_max_loss
+permanent.original_sin_gained
+flags
+history
+
+Implement these functions:
+
+QE.QuantumBaby.ensure_state(chara)
+QE.QuantumBaby.get_state(chara)
+QE.QuantumBaby.is_quantum_baby(chara)
+
+QE.Resources.get(chara, resource_id)
+QE.Resources.get_max(chara, resource_id)
+QE.Resources.add(chara, resource_id, amount)
+QE.Resources.spend(chara, resource_id, amount)
+QE.Resources.modify_max(chara, resource_id, amount)
+QE.Resources.recalculate_max(chara)
+
+All resource values must clamp between min and max.
+
+All resource changes should emit custom QE events.
+
+Do not mutate global state.
+
+Prefer passing chara and state explicitly.
+
+Add tests under test/resources_test.lua.
+```
+
+---
+
+# 17. Third Implementation Prompt: Augments
+
+Then:
+
+```text
+Inside the OpenNefia mod qe_core, implement the augmentation system.
+
+Create api/Augments.lua.
+
+Use the existing qe_core data prototypes for resources, slots, and augments.
+
+Implement:
+
+QE.Augments.is_slot_unlocked(chara, slot_id)
+QE.Augments.get_installed(chara, slot_id)
+QE.Augments.can_install(chara, augment_id)
+QE.Augments.install(chara, augment_id)
+QE.Augments.uninstall(chara, slot_id)
+QE.Augments.recalculate_modifiers(chara)
+
+Rules:
+
+1. A locked slot cannot accept an augment.
+2. An occupied slot cannot accept another augment unless explicitly replacing it.
+3. Installation must check required_sync_rate.
+4. Installation must apply original_sin_gain permanently.
+5. Installation must apply humanity_max_loss.
+6. Uninstalling should remove reversible modifiers.
+7. Permanent Original Sin gains are not removed by uninstalling.
+8. Recalculate resource max values after installation or uninstallation.
+9. Emit qe_core.augment.before_install and qe_core.augment.after_install.
+10. Emit qe_core.augment.before_uninstall and qe_core.augment.after_uninstall.
+
+Add tests under test/augment_test.lua.
+```
+
+---
+
+# 18. Current Doubt / Validation Need
+
+I have one important doubt that cannot be fully resolved from the architecture document alone:
+
+> We need to confirm the exact OpenNefia API for custom data types, mod save initialization, character state attachment, and stat hooks.
+
+The architecture document tells us the correct places to look, but not the exact function names or schema syntax.
+
+Therefore, the next practical step is:
+
+```text
+Milestone 1: OpenNefia Extension Inspection
+```
+
+We need to inspect or be shown examples of:
+
+1. A working `mod.lua`.
+2. A working `init.lua`.
+3. A mod that adds custom data.
+4. A mod that adds save data.
+5. A mod that registers event callbacks.
+6. Any debug/console command example, if one exists.
+
+Without that, we can still write the blueprint, but actual code should be validated against the live OpenNefia repository.

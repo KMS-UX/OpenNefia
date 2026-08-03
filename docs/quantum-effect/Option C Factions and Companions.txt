@@ -1,0 +1,233 @@
+In OpenNefia, we don't build these as rigid, hard-coded classes. We build them as **Data Prototypes** (for the definitions) and **Event Callbacks** (for the behavior). This perfectly aligns with your AI-Native pipeline: your *Designer AI* writes the lore and stats in a structured format, and your *OpenNefia Lua Architect AI* translates that into the `data` tables and `Event` hooks.
+
+Here is the architectural blueprint for the **Faction & Companion Framework**.
+
+---
+
+### 1. The Faction Framework (`qe_factions` Mod)
+
+OpenNefia’s base game has a simple guild/rank system, but *Quantum Effect* requires a complex, multi-layered political web (18+ factions spanning street gangs to interstellar theocracies). We will create a custom data prototype: `qe.faction`.
+
+#### A. Data Schema Design
+Every faction will be defined as a data prototype. This allows the AI to easily generate new factions without touching the core engine code.
+
+```lua
+-- mod/qe_factions/data/faction.lua
+-- This defines the schema for what a faction looks like in QE.
+
+data:add {
+    _TYPE = "base.prototype",
+    _ID = "qe.faction",
+    _FIELDS = {
+        name = { type = "string", localized = true },
+        desc = { type = "string", localized = true },
+        tier = { 
+            type = "enum", 
+            values = { "origin", "deep_state", "street", "frontier", "mystic", "economic" } 
+        },
+        default_stance = { type = "enum", values = { "hostile", "neutral", "friendly" } },
+        -- Used to determine if they operate on First Earth, Unknown Earth, or Interstellar
+        operational_scope = { type = "table", of_type = "string" }, 
+    }
+}
+
+-- Example: Defining the "Aurelian Order"
+data:add {
+    _TYPE = "qe.faction",
+    _ID = "aurelian_order",
+    name = "Aurelian Order",
+    desc = "Galactic theocracy dedicated to preserving ancient knowledge...",
+    tier = "mystic",
+    default_stance = "neutral",
+    operational_scope = { "interstellar", "first_earth" },
+}
+
+-- Example: Defining the "Technopunks"
+data:add {
+    _TYPE = "qe.faction",
+    _ID = "technopunks",
+    name = "Technopunks",
+    desc = "Street gang... symbol of Chaos on the surface.",
+    tier = "street",
+    default_stance = "neutral",
+    operational_scope = { "first_earth" },
+}
+```
+
+#### B. Save Data & Reputation Tracking
+Faction reputation must persist in the save file. We will use OpenNefia's `event/save.lua` convention to initialize and track this.
+
+```lua
+-- mod/qe_factions/event/save.lua
+local SaveData = {}
+
+Event.register("base.save_game", function(e)
+    e.save_data.qe_factions = SaveData.faction_rep
+end)
+
+Event.register("base.load_game", function(e)
+    SaveData.faction_rep = e.save_data.qe_factions or {}
+end)
+
+-- API for other mods to change reputation
+function Api.change_rep(faction_id, amount)
+    local current = SaveData.faction_rep[faction_id] or 0
+    local new_val = current + amount
+    SaveData.faction_rep[faction_id] = new_val
+    
+    -- Trigger a global event so other systems (like companions) can react!
+    Event.trigger("qe.faction_rep_changed", { faction = faction_id, old = current, new = new_val })
+end
+```
+
+---
+
+### 2. The Companion Framework (`qe_companions` Mod)
+
+In OpenNefia, a companion is fundamentally a `base.chara` (Character) with an `ally` role. However, *Quantum Effect* companions need deep narrative ties, affinity tracking, and romance flags. We will extend the base character data.
+
+#### A. Companion Data Schema
+We inject a `qe_companion` table into the standard character definitions.
+
+```lua
+-- mod/qe_companions/data/chara.lua
+data:add {
+    _TYPE = "base.chara",
+    _ID = "lyra",
+    -- ... standard Elona/OpenNefia chara stats (HP, MP, sprites, etc.) ...
+    
+    -- Quantum Effect Specific Metadata
+    qe_companion = {
+        faction = "qe.faction.aurelian_order",
+        affinity = 0,           -- 0 to 100
+        romance_eligible = true,
+        romance_state = "none", -- none, flirting, committed
+        personal_quest = "qe.quest.lyra_past",
+        bio_mech_slots = {      -- Lyra's specific augmentations
+            neuro = "aurelian_focus_chip",
+            limbs = "agile_servos"
+        }
+    }
+}
+```
+
+#### B. Party Management & "Real-Time Feeling" Turn Order
+You specified a flexible party size: **1 to 3 companions + 1 pet**. OpenNefia's base game allows larger parties. We must intercept the recruitment event to enforce your rule.
+
+```lua
+-- mod/qe_companions/event/party.lua
+
+-- Intercept when a character tries to join the player's party
+Event.register("base.chara_joins_party", function(e)
+    local player = e.player
+    local recruit = e.chara
+    
+    -- Count current allies and pets
+    local allies = Api.count_allies(player)
+    local pets = Api.count_pets(player)
+    
+    -- Enforce the 3 Companion + 1 Pet rule
+    if recruit.role == "pet" and pets >= 1 then
+        Api.show_message("You can only have one pet with you.")
+        return { result = "blocked" }
+    elseif allies >= 3 then
+        Api.show_message("Your squad is full. Dismiss someone first.")
+        return { result = "blocked" }
+    end
+    
+    -- If they belong to a hostile faction, block recruitment unless specific conditions are met
+    local fac_id = recruit.qe_companion.faction
+    if fac_id and SaveData.faction_rep[fac_id] < -50 then
+        Api.show_message("They refuse to join you due to your reputation with their faction.")
+        return { result = "blocked" }
+    end
+end)
+```
+
+#### C. Companion AI in the "Real-Time Feeling" Turn System
+OpenNefia uses a turn-cost system. When the player moves, it costs "turn points". When the meter fills, the turn resolves. Companions need to act in this flow.
+
+```lua
+-- mod/qe_companions/event/turn.lua
+
+-- Hook into the turn resolution to let companions act
+Event.register("base.turn_ended", function(e)
+    local player = e.player
+    for _, ally in ipairs(Api.get_party_allies(player)) do
+        -- Calculate ally's turn cost based on their bio-mech augmentations
+        local action_cost = Api.calculate_ally_action_cost(ally)
+        
+        -- Trigger companion AI logic (Combat, follow, use item, etc.)
+        Event.trigger("qe.companion_take_turn", { 
+            companion = ally, 
+            context = Api.get_combat_context() 
+        })
+    end
+end)
+```
+
+---
+
+### 3. Bridging the Two: The Interaction Engine
+
+The magic happens when Factions and Companions interact. Because we used OpenNefia's `Event` system, we can write modular callbacks that listen to global state changes.
+
+**Example: The "Sympathizer" Mechanic**
+If you raise your reputation with the *Technopunks*, a Technopunk companion's affinity should naturally rise, or they should offer unique dialogue.
+
+```lua
+-- mod/qe_companions/event/faction_synergy.lua
+
+-- Listen to the global faction reputation event we created earlier
+Event.register("qe.faction_rep_changed", function(e)
+    local faction_id = e.faction
+    local new_rep = e.new
+    
+    -- Check if any active companion belongs to this faction
+    for _, ally in ipairs(Api.get_party_allies(player)) do
+        if ally.qe_companion.faction == faction_id then
+            
+            -- If rep goes up, grant passive affinity
+            if new_rep > e.old then
+                Api.change_affinity(ally, 2)
+                Api.show_bubble(ally, "I see you're helping my people. Thanks.")
+            end
+            
+            -- If rep drops below a threshold, companion might complain or leave
+            if new_rep < -50 and ally.qe_companion.loyalty < 80 then
+                Event.trigger("qe.companion_defection_check", { companion = ally })
+            end
+        end
+    end
+end)
+```
+
+---
+
+### 4. How This Fits the AI-Native Pipeline
+
+This architecture is specifically designed to let your AI agents work without stepping on each other's toes.
+
+1. **Designer AI**: Writes the `Master Reference` document. 
+   * *Output:* "Lyra is an Aurelian Order scout. She uses agile servos. She hates the Corporates."
+2. **OpenNefia Lua Architect AI**: Takes that document and generates the exact Lua tables shown above (`data/chara.lua`, `data/faction.lua`). It doesn't need to know *how* the engine renders her; it just defines her data.
+3. **Pixel Artist AI**: Generates Lyra's sprite sheet (`CHR_LYRA_001`).
+4. **Technical Artist AI**: Slices the sheet and maps it to the `CHR_LYRA_001` graphic definition in OpenNefia.
+5. **QA AI**: Runs a unit test (`mod/qe_companions/test/lyra_recruitment.lua`) to ensure Lyra can be recruited, her faction rep is tracked, and her turn-cost calculates correctly.
+
+---
+
+### What's Next?
+
+We have successfully laid the bedrock for how the world's politics (Factions) and the player's inner circle (Companions) will be structured in Lua. 
+
+Where should we direct our focus next?
+
+**Option 1: Deep Dive into a Specific Companion (Lyra)**
+We can write the exact dialogue tree logic, her specific bio-mechanical augmentation effects, and her personal quest trigger events to prove the Companion Framework works in practice.
+
+**Option 2: The Bio-Mechanical Augmentation System (Option A from before)**
+Now that we know how companions and factions track data, let's design the `qe.augment` data schema. How do we track "Humanity vs. Quantum Corruption", and how do chip implants physically alter the turn-cost and event hooks we just built?
+
+**Option 3: The Hub & Warp Architecture (Option B from before)**
+Let's design the `qe_warp` system. How does the player physically move from a First Earth slum to an Unknown Earth facility using OpenNefia's `InstancedMap` and UI Layers?
