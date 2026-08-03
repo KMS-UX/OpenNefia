@@ -1,0 +1,5 @@
+require("mod.qe_core.data.qe_core.event")
+require("mod.qe_core.data.qe_core.resource")
+require("mod.qe_core.data.qe_core.augment_slot")
+require("mod.qe_core.data.qe_core.augment")
+require("mod.qe_core.data.keybind")
