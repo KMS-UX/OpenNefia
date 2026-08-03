@@ -243,3 +243,54 @@ recognizable - shipped as-is; the stray pixels are cosmetic at 48px scale.
 Not yet built: a slicer/cropper for "key art, not sprites" files (e.g.
 `bestiary/bosses/bio-leviathan.png`, a painterly illustration with a
 caption and letterbox bars) - different shape of problem, deferred.
+
+## `assets/tiles/` (2026-08-03): a new failure mode - baked-in section-header labels
+
+`tiles/` (terrain, building, objects, decor, interior, vehicles - 41-60 files
+each, ~278 total) is shaped like `characters/sprites/`: one subject per file,
+already individually cropped, real alpha throughout (spot-checked one file per
+subfolder, none needed `dekey_alpha.ps1`). It packs cleanly with
+`pack_sprites.ps1` directly - no slicing needed, since each file is already
+one subject.
+
+**But every subfolder has 2-4 files that are themselves category-header text**
+- not a caption baked onto real content (that's `strip_caption.ps1`'s job),
+but a whole separate file that's *only* text, mixed in among the real art at
+arbitrary positions: `terrain` has "ROCKS / STONES" and "DECORATION";
+`building` has "WALLS", "DOORS / GATES" and "DETAILS"; `objects` has "MISC",
+"NATURAL" and "TECH"; `interior` has "WALLS / PANELS" and "FURNITURE"; `decor`
+has "FLOORS / SCREENS" (plus real signage props like "BAR" and numbered door
+plaques - those are legitimate content, not dividers, so text presence alone
+isn't a valid filter).
+
+A geometric heuristic (trimmed aspect ratio ≥ 2.1 and post-scale drawn height
+≤ 25px) was tried against the confirmed label positions and caught roughly
+half of them - it's a decent first pass for triage, not a reliable filter on
+its own. Confirmed by eye instead, using an annotated copy of each packed
+sheet (burn the manifest index onto each cell with `Graphics.DrawString`,
+crop into thirds, zoom 3-6x) to identify exact indices - tedious, but the
+only way that was actually reliable given the range of shapes (wide banners
+vs. small single-word tags).
+
+**Only 3 of terrain's 41 files are wired into real data so far**
+(`src/mod/quantum_effect/data/map_tile_terrain.lua`) - `terrain-001.png`,
+`-002.png`, `-004.png`, hand-picked as unambiguous clean square ground
+textures, repacked into their own dedicated 48x48-cell sheet (see the note
+below on why). The rest of `terrain/`, and all of
+building/objects/decor/interior/vehicles, are packed at 48x96
+(`out/tiles_<category>_48.png`, gitignored scratch) but **not yet copied
+into a mod or triaged for labels** - that's real follow-up work, not done
+implicitly by this pass. Budget real time for it: ~278 files, eyeballing
+every one is roughly what this session did for one subfolder.
+
+### Map tiles need 48x48, not 48x96
+
+Character/creature chips can be packed at a taller 48x96 cell for tall
+subjects (`colossus`, is_tall-style) with no problem - but
+`base.map_tile` can't: `src/internal/layer/tile_layer.lua`'s `tile_batch`
+draws every tile into one fixed cell size taken from the active theme's
+`coords` (effectively 48x48 map-wide, not per-tile), and every real
+`base.map_tile` entry anywhere in the engine, elona's included, uses
+`width=48, height=48`. Pack tile-bound art at `-Cell 48` (square), not
+`-CellHeight 96` - confirmed by checking `tile_layer.lua` before wiring
+anything, not by trial and error in-game.
